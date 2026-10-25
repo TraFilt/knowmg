@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>رحلة الموشن مع Claude</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
@@ -75,6 +76,44 @@ a{color:var(--teal)}
 .how div{background:var(--sunk);border-radius:16px;padding:.9rem;font-size:.92rem}
 .how b{display:block;font-size:1rem}
 @media (max-width:560px){.how{grid-template-columns:1fr}.hero h1{font-size:1.75rem}}
+.pcnote{display:flex;gap:.8rem;align-items:flex-start;background:var(--teal-soft);border:2px solid var(--teal);border-radius:18px;padding:.9rem 1.1rem;margin-top:1rem}
+.pcnote svg{flex:0 0 auto;width:2rem;height:2rem;fill:none;stroke:var(--teal);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-top:.2rem}
+.pcnote b{color:var(--teal);display:block}
+.pcnote p{font-size:.95rem;color:var(--ink)}
+.showcase{margin-top:2rem;display:grid;gap:.8rem}
+.showcase h2{font-size:1.4rem}
+.showcase>p{color:var(--soft)}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem}
+.sgrid video{width:100%;aspect-ratio:16/9;border-radius:14px;display:block;background:var(--sunk);object-fit:cover}
+.showcase small{color:var(--soft);font-size:.8rem}
+@media (max-width:560px){.sgrid{grid-template-columns:1fr 1fr}}
+/* ===== purchase card ===== */
+.pcard-wrap{padding-block:2rem 1rem;display:grid;gap:1.2rem;justify-items:center;text-align:center}
+.pcard-wrap>p{color:var(--soft)}
+.pcard{position:relative;width:min(100%,30rem);border-radius:28px;overflow:hidden;color:#fff;text-align:right;
+  background:radial-gradient(circle at 15% 0%,#2D7F80 0%,#1F5F61 45%,#163F41 100%);box-shadow:0 24px 50px -18px rgba(15,50,52,.55)}
+.pcard::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.08) 2px,transparent 2.4px);background-size:22px 22px}
+.pcard .top{position:relative;padding:1.4rem 1.5rem 1.1rem;display:grid;gap:.6rem}
+.pcard .brand{display:flex;align-items:center;gap:.6rem}
+.pcard .mark{width:2.6rem;height:2.6rem;border-radius:12px;background:#E8B04B;display:grid;place-items:center;position:relative;flex:0 0 auto}
+.pcard .mark i{width:0;height:0;border-style:solid;border-width:.55rem 0 .55rem .9rem;border-color:transparent transparent transparent #1F5F61;margin-left:.2rem}
+.pcard .mark b{position:absolute;right:-.3rem;top:-.3rem;width:.85rem;height:.85rem;border-radius:50%;background:#C8623F;border:3px solid #1F5F61}
+.pcard .wm{font-weight:700;font-size:1.25rem;direction:ltr}
+.pcard .lab{margin-inline-start:auto;background:rgba(255,255,255,.14);border-radius:99px;padding:.1rem .8rem;font-size:.8rem;font-weight:600}
+.pcard h1{font-size:1.5rem;line-height:1.4}
+.pcard h1 span{color:#F0BE5E}
+.pcard .tear{position:relative;height:0;border-top:2px dashed rgba(255,255,255,.35);margin:0 1.2rem}
+.pcard .tear::before,.pcard .tear::after{content:"";position:absolute;top:-14px;width:26px;height:26px;border-radius:50%;background:var(--bg)}
+.pcard .tear::before{right:-2.5rem}.pcard .tear::after{left:-2.5rem}
+.pcard .bot{position:relative;padding:1.1rem 1.5rem 1.4rem;display:grid;gap:.7rem}
+.pcard .cl{font-size:.85rem;opacity:.85}
+.pcard .code{direction:ltr;text-align:center;font-weight:700;font-size:clamp(1.4rem,7vw,2rem);letter-spacing:.12em;white-space:nowrap;background:#FBF7F1;color:#1E2328;border-radius:16px;padding:.5rem;font-variant-numeric:tabular-nums}
+.pcard .site{display:grid;gap:.1rem;text-align:center;background:rgba(0,0,0,.18);border-radius:14px;padding:.55rem .9rem;font-size:.9rem}
+.pcard .site span:first-child{font-size:.8rem;opacity:.85}.pcard .site span:last-child{direction:ltr;font-weight:700;color:#F0BE5E;font-size:1.05rem;white-space:nowrap}
+.pcard-acts{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center}
+.pcard-steps{width:min(100%,30rem);display:grid;gap:.5rem;text-align:right;padding:0;margin:0;list-style:none}
+.pcard-steps li{display:flex;gap:.7rem;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:.6rem .9rem;font-size:.95rem}
+.pcard-steps .n{flex:0 0 auto;width:1.8rem;height:1.8rem;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:.9rem}
 
 /* ===== map ===== */
 .hello{padding-block:1.4rem .6rem;display:grid;gap:.3rem}
@@ -176,8 +215,8 @@ a{color:var(--teal)}
 .next-row{display:flex;gap:.8rem;flex-wrap:wrap}
 
 /* celebration + certificate */
-.toast{position:fixed;left:50%;bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));transform:translate(-50%,150%);background:var(--ink);color:var(--bg);border-radius:16px;padding:.7rem 1.2rem;font-weight:700;transition:transform .35s ease;z-index:20;max-width:calc(100% - 32px)}
-.toast.show{transform:translate(-50%,0)}
+.toast{position:fixed;left:50%;bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));transform:translate(-50%,150%);background:var(--ink);color:var(--bg);border-radius:16px;padding:.7rem 1.2rem;font-weight:700;transition:transform .35s ease,opacity .35s;opacity:0;z-index:20;max-width:calc(100% - 32px)}
+.toast.show{transform:translate(-50%,0);opacity:1}
 .cert{background:var(--surface);border:3px solid var(--gold);border-radius:26px;padding:2rem 1.5rem;text-align:center;display:grid;gap:.7rem;position:relative;overflow:hidden}
 .cert::before{content:"";position:absolute;inset:10px;border:1.5px dashed var(--gold);border-radius:18px;pointer-events:none}
 .cert .medal{width:5rem;height:5rem;border-radius:50%;background:var(--gold);color:var(--gold-ink);display:grid;place-items:center;margin-inline:auto;font-size:2rem;font-weight:700}
@@ -399,6 +438,17 @@ const REASONS = {
   server: "حدث خطأ عندنا. حاول بعد قليل.",
   network: "تعذّر الاتصال. تأكد من الإنترنت وحاول مرة أخرى."
 };
+// accepts a bare code, a code without dash, or the whole card link the buyer received
+function pickCode(raw){
+  let c = String(raw || "").toUpperCase();
+  const h = c.indexOf("#");
+  if (h >= 0) c = c.slice(h + 1).replace(/^K=/, "");
+  c = c.replace(/\s+/g, "");
+  const m = c.match(/^[A-Z0-9]{4}-?[A-Z0-9]{4}$/) || c.match(/[A-Z0-9]{4}-[A-Z0-9]{4}/);
+  if (m) c = m[0];
+  if (/^[A-Z0-9]{8}$/.test(c)) c = c.slice(0,4) + "-" + c.slice(4);
+  return c;
+}
 function deviceId(){
   try {
     let d = localStorage.getItem("mc-device");
@@ -407,8 +457,7 @@ function deviceId(){
   } catch(e) { return "nostore-" + navigator.userAgent.length + "-" + screen.width; }
 }
 async function verifyCode(code, name){
-  code = code.replace(/\s+/g, "").toUpperCase();
-  if (/^[A-Z0-9]{8}$/.test(code)) code = code.slice(0,4) + "-" + code.slice(4);
+  code = pickCode(code);
   if (!LIVE) {
     await new Promise(r => setTimeout(r, 400));
     if (code === DEMO_CODE) return {ok:true, name, code};
@@ -464,6 +513,42 @@ function bar(){
 }
 
 /* ============ VIEWS ============ */
+const PC_NOTE = `<div class="pcnote"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><div><b>تحتاج جهاز كمبيوتر (ويندوز أو ماك)</b><p>تطبيق الدورة وصناعة الفيديو يكونان على الكمبيوتر. تقدر تشاهد الشرح من الجوال، لكن التطبيق العملي يحتاج كمبيوتر.</p></div></div>`;
+let PENDING = "";
+try { PENDING = sessionStorage.getItem("mc-pending") || ""; } catch(e) {}
+
+function viewCard(code){
+  app.innerHTML = `<div class="wrap"><section class="pcard-wrap">
+    <p>شكراً لشرائك! هذه بطاقة دورتك</p>
+    <div class="pcard" role="group" aria-label="بطاقة الدورة">
+      <div class="top">
+        <div class="brand"><span class="mark"><i></i><b></b></span><span class="wm">knowmg</span><span class="lab">بطاقة دورة</span></div>
+        <h1>اصنع فيديو <span>موشن جرافيك</span> مع Claude</h1>
+      </div>
+      <div class="tear"></div>
+      <div class="bot">
+        <div class="cl">كود التفعيل الخاص بك</div>
+        <div class="code" id="pcCode">${esc(code)}</div>
+        <div class="site"><span>موقع الدورة</span><span>trafilt.github.io/knowmg</span></div>
+      </div>
+    </div>
+    <div class="pcard-acts">
+      <button class="btn" id="pcGo">فعّل دورتك الآن</button>
+      <button class="btn ghost" id="pcCopy">نسخ الكود</button>
+    </div>
+    <ol class="pcard-steps">
+      <li><span class="n">1</span>اضغط «فعّل دورتك الآن»، الكود مكتوب لك تلقائياً</li>
+      <li><span class="n">2</span>اكتب اسمك كما تريده في الشهادة</li>
+      <li><span class="n">3</span>احتفظ بهذه البطاقة، الكود يعمل على جهازين</li>
+    </ol>
+    ${PC_NOTE}
+  </section></div>`;
+  document.getElementById("pcGo").addEventListener("click", () => viewActivate());
+  document.getElementById("pcCopy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(code); toast("تم نسخ الكود"); }
+    catch(e) { const r = document.createRange(); r.selectNodeContents(document.getElementById("pcCode")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("الكود محدَّد، انسخه"); }
+  });
+}
 function viewActivate(err){
   app.innerHTML = `<div class="wrap">
   <section class="hero">
@@ -475,16 +560,23 @@ function viewActivate(err){
   <form class="card act" id="actForm" novalidate>
     <h2>فعّل دورتك</h2>
     <div class="field"><label for="nm">اسمك كما تريده في الشهادة</label><input id="nm" autocomplete="name" value="${esc(S.name)}" placeholder="مثلاً: أبو محمد" required></div>
-    <div class="field"><label for="cd">كود التفعيل</label><input id="cd" class="code" autocomplete="off" placeholder="XXXX-XXXX" required></div>
+    <div class="field"><label for="cd">كود التفعيل</label><input id="cd" class="code" autocomplete="off" placeholder="XXXX-XXXX" value="${esc(PENDING || "")}" required></div>
     ${err ? `<div class="msg err" role="alert">${esc(err)}</div>` : ""}
     <button class="btn" id="actBtn" type="submit">ابدأ الرحلة</button>
     ${LIVE ? `<p class="demo">الكود يُفعَّل باسمك، ويعمل على جهازين كحد أقصى (مثلاً الكمبيوتر والجوال).</p>` : `<div class="demo">نسخة تجريبية: للتجربة اكتب الكود <b>${DEMO_CODE}</b></div>`}
   </form>
+  ${PC_NOTE}
   <div class="how">
     <div><b>1. اشترِ الدورة</b>من متجرنا في سلة</div>
     <div><b>2. يصلك الكود</b>مع رابط الموقع بعد الدفع</div>
     <div><b>3. فعّل وابدأ</b>اكتب اسمك والكود هنا</div>
-  </div></div>`;
+  </div>
+  <section class="showcase" aria-labelledby="scH">
+    <h2 id="scH">مقاطع ستصنع مثلها</h2>
+    <p>كل هذه الأمثلة صُنعت بنفس الخطوات التي ستتعلمها في الدورة: تكتب فكرتك لـ Claude بكلماتك، وهو يصمّم الحركة ويصدّر الفيديو. ستة أساليب مختلفة، وكلها من نفس الطريقة.</p>
+    <div class="sgrid">${[1,2,3,4,5,6].map(i => `<video src="assets/samples/sample-${i}.mp4" poster="assets/samples/p${i}.jpg" autoplay muted loop playsinline preload="metadata" aria-label="مثال ${i}"></video>`).join("")}</div>
+    <small>الأسماء التجارية في الأمثلة وهمية، صمّمناها للتوضيح فقط.</small>
+  </section></div>`;
   document.getElementById("actForm").addEventListener("submit", async e => {
     e.preventDefault();
     const name = document.getElementById("nm").value.trim();
@@ -494,7 +586,9 @@ function viewActivate(err){
     const b = document.getElementById("actBtn"); b.disabled = true; b.textContent = "جارٍ التحقق…";
     const r = await verifyCode(code, name);
     if (!r.ok) { S.name = name; return viewActivate(r.msg); }
-    S.name = r.name; S.code = r.code; S.active = true; save(); viewMap();
+    S.name = r.name; S.code = r.code; S.active = true; save();
+    PENDING = ""; try { sessionStorage.removeItem("mc-pending"); } catch(e) {}
+    viewMap();
     toast(r.name !== name ? `مرحباً ${r.name}، الكود مفعّل باسمك من قبل` : "تم تفعيل دورتك. بالتوفيق!");
   });
 }
@@ -630,7 +724,16 @@ function wireBar(){
 }
 
 async function boot(){
-  if (!S.active) return viewActivate();
+  // card link from the store: #k=XXXX-XXXX (hash never reaches any server); read it, then clean the address bar
+  const h = decodeURIComponent(location.hash || "");
+  if (/^#(k=)?[A-Za-z0-9]{4}-?[A-Za-z0-9]{4}$/.test(h)) {
+    const code = pickCode(h);
+    PENDING = code;
+    try { sessionStorage.setItem("mc-pending", code); } catch(e) {}
+    try { history.replaceState(null, "", location.pathname + location.search); } catch(e) {}
+    if (!S.active || (S.code && S.code !== code)) return viewCard(code);
+  }
+  if (!S.active) return PENDING ? viewCard(PENDING) : viewActivate();
   if (!LIVE) return viewMap();
   app.innerHTML = `<div class="wrap"><section class="hero"><p>جارٍ فتح دورتك…</p></section></div>`;
   const r = await verifyCode(S.code || "", S.name);
