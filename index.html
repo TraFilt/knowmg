@@ -225,6 +225,21 @@ a{color:var(--teal)}
 .cert p{color:var(--soft)}
 .foot{margin-top:2.4rem;text-align:center;color:var(--soft);font-size:.85rem;display:grid;gap:.5rem;justify-items:center}
 .linkbtn{background:none;border:0;color:var(--soft);text-decoration:underline;font-size:.85rem}
+.brk{display:none}
+@media (max-width:560px){.brk{display:block;flex-basis:100%;height:0}.bar .sizes{margin-inline-start:auto}}
+.iconbtn{display:grid;place-items:center;width:2.3rem;height:2.3rem;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);padding:0}
+.iconbtn svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn[aria-pressed="false"]{color:var(--soft)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--sunk);border-radius:14px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;border-radius:11px;padding:.5rem;font-weight:700;color:var(--soft)}
+.seg button[aria-selected="true"]{background:var(--surface);color:var(--teal);box-shadow:0 2px 0 var(--line)}
+.act .sub{color:var(--soft)}
+.fh{color:var(--soft);font-size:.85rem}
+.sup{justify-self:start;padding:.4rem 1rem;font-size:.95rem}
+.ann{background:var(--gold);color:var(--gold-ink);font-weight:700;text-align:center;padding:.55rem 1rem;border-radius:0 0 14px 14px;margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)))}
+.modal{position:fixed;inset:0;background:rgba(10,15,16,.55);display:grid;place-items:center;padding:16px;z-index:30}
+.modal-box{background:var(--surface);border-radius:22px;padding:1.4rem;max-width:26rem;width:100%;display:grid;gap:.8rem}
+.modal-box h2{font-size:1.3rem}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -432,9 +447,10 @@ const REASONS = {
   bad_format: "شكل الكود غير صحيح. اكتبه كما وصلك من المتجر، مثل: ABCD-2345",
   not_found: "لم نجد هذا الكود. تأكد من كتابته كما وصلك في رسالة الطلب.",
   revoked: "هذا الكود موقوف. تواصل معنا من صفحة طلبك في المتجر.",
-  device_limit: "هذا الكود مفعّل على جهازين بالفعل. تواصل معنا لننقله إلى جهازك الجديد.",
+  device_limit: "هذا الكود مسجّل على جهاز آخر، والكود يعمل على جهاز واحد فقط. تواصل معنا لننقله إلى جهازك الجديد.",
+  closed: "التفعيل الجديد متوقف مؤقتاً. حاول لاحقاً أو تواصل معنا.",
   rate_limited: "محاولات كثيرة. انتظر نصف ساعة ثم حاول مرة أخرى.",
-  name_required: "اكتب اسمك أولاً، سيظهر في شهادتك.",
+  name_required: "هذا الكود لم يُفعَّل بعد. اكتب اسمك لتفعيله أول مرة.",
   server: "حدث خطأ عندنا. حاول بعد قليل.",
   network: "تعذّر الاتصال. تأكد من الإنترنت وحاول مرة أخرى."
 };
@@ -449,18 +465,33 @@ function pickCode(raw){
   if (/^[A-Z0-9]{8}$/.test(c)) c = c.slice(0,4) + "-" + c.slice(4);
   return c;
 }
+// The code is bound to this device id; it survives logout (only the session is cleared).
 function deviceId(){
-  try {
-    let d = localStorage.getItem("mc-device");
-    if (!d) { d = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()); localStorage.setItem("mc-device", d); }
-    return d;
-  } catch(e) { return "nostore-" + navigator.userAgent.length + "-" + screen.width; }
+  let d = null;
+  try { d = localStorage.getItem("mc-device"); } catch(e) {}
+  if (!d) { const m = document.cookie.match(/(?:^|; )mc_device=([^;]+)/); if (m) d = decodeURIComponent(m[1]); }
+  if (!d) d = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
+  try { localStorage.setItem("mc-device", d); } catch(e) {}
+  try { document.cookie = "mc_device=" + encodeURIComponent(d) + "; max-age=315360000; path=/; SameSite=Lax; Secure"; } catch(e) {}
+  return d;
 }
+let SETTINGS = {announcement:"", support_url:"", registration_open:true};
+async function loadPublic(){
+  if (!LIVE) return;
+  try { const r = await (await fetch(API, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action:"public"})})).json(); if (r.ok) { SETTINGS = r.settings; showAnnouncement(); } } catch(e) {}
+}
+function showAnnouncement(){
+  let el = document.getElementById("ann");
+  if (!SETTINGS.announcement) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement("div"); el.id = "ann"; el.className = "ann"; el.setAttribute("role","status"); document.body.insertBefore(el, app); }
+  el.textContent = SETTINGS.announcement;
+}
+const supportLink = () => SETTINGS.support_url ? `<a class="btn ghost sup" href="${esc(SETTINGS.support_url)}" target="_blank" rel="noopener">تواصل معنا</a>` : "";
 async function verifyCode(code, name){
   code = pickCode(code);
   if (!LIVE) {
     await new Promise(r => setTimeout(r, 400));
-    if (code === DEMO_CODE) return {ok:true, name, code};
+    if (code === DEMO_CODE) return {ok:true, name: name || "ضيف", code, first: !S.lastCode};
     return {ok:false, msg: /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code) ? REASONS.not_found : REASONS.bad_format};
   }
   try {
@@ -468,7 +499,8 @@ async function verifyCode(code, name){
     const r = await res.json();
     if (!r.ok) return {ok:false, reason:r.reason, msg: REASONS[r.reason] || REASONS.server};
     CLIPS = r.clips || {};
-    return {ok:true, name: r.name || name, code};
+    if (r.settings) { SETTINGS = r.settings; showAnnouncement(); }
+    return {ok:true, name: r.name || name, code, first: r.first};
   } catch(e) { return {ok:false, reason:"network", msg: REASONS.network}; }
 }
 const clipSrc = x => LIVE ? CLIPS[x.id] : x.clip;
@@ -488,6 +520,30 @@ function applySize(){ const r = document.documentElement; r.classList.remove("si
 applySize();
 
 const app = document.getElementById("app");
+
+/* ============ SOUNDS ============
+   Tiny synthesized sounds (no files). Muted with the speaker button; choice saved on this device. */
+const SND = (() => {
+  let ctx = null;
+  const ready = () => { if (S.sound === false) return null; try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === "suspended") ctx.resume(); return ctx; } catch(e) { return null; } };
+  const tone = (f, at, dur, type = "sine", vol = .1, slideTo) => {
+    const c = ready(); if (!c) return;
+    const t = c.currentTime + at, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t); if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + .02);
+  };
+  return {
+    tap(){ tone(660, 0, .07, "triangle", .06, 880); },
+    copy(){ tone(990, 0, .06, "sine", .07); tone(1320, .06, .08, "sine", .06); },
+    star(){ [784, 988, 1175].forEach((f,i) => tone(f, i*.07, .18, "triangle", .09)); },
+    win(){ [523, 659, 784, 1047, 1319].forEach((f,i) => tone(f, i*.09, .32, "triangle", .1)); },
+    ok(){ tone(587, 0, .14, "sine", .09); tone(880, .12, .26, "sine", .09); },
+    err(){ tone(220, 0, .18, "square", .05, 150); },
+    lock(){ tone(330, 0, .1, "sine", .06, 260); }
+  };
+})();
+document.addEventListener("pointerdown", e => { if (e.target.closest("button, .linkcard, a.btn")) SND.tap(); }, {passive:true});
 const toastEl = document.getElementById("toast");
 function toast(t){ toastEl.textContent = t; toastEl.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => toastEl.classList.remove("show"), 2600); }
 
@@ -495,6 +551,9 @@ const ICON = {
  lock:'<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
  star:'<svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>',
  play:'<svg viewBox="0 0 24 24" style="stroke:none"><path d="M8 5l11 7-11 7z"/></svg>',
+ sound:'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
+ mute:'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
+ out:'<svg viewBox="0 0 24 24"><path d="M10 4H5v16h5"/><path d="M15 8l4 4-4 4M19 12H9"/></svg>',
  trophy:'<svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>'
 };
 
@@ -502,6 +561,9 @@ function bar(){
   const pct = Math.round(starCount() / ALL.length * 100);
   return `<header class="bar"><div class="wrap">
     <div class="who">مرحباً ${esc(S.name)}</div>
+    <button class="iconbtn" id="sndBtn" aria-pressed="${S.sound !== false}" aria-label="${S.sound !== false ? "كتم الأصوات" : "تشغيل الأصوات"}" title="الأصوات">${S.sound !== false ? ICON.sound : ICON.mute}</button>
+    <button class="iconbtn" id="outBtn" aria-label="تسجيل الخروج" title="تسجيل الخروج">${ICON.out}</button>
+    <span class="brk" aria-hidden="true"></span>
     <div class="stars" aria-label="النجوم">${ICON.star.replace('<svg','<svg width="18" height="18"')} ${starCount()} من ${ALL.length}</div>
     <div class="sizes" role="group" aria-label="حجم الخط">
       <button data-size="m" aria-pressed="${S.size==='m'}" aria-label="خط عادي">أ</button>
@@ -538,18 +600,21 @@ function viewCard(code){
     </div>
     <ol class="pcard-steps">
       <li><span class="n">1</span>اضغط «فعّل دورتك الآن»، الكود مكتوب لك تلقائياً</li>
-      <li><span class="n">2</span>اكتب اسمك كما تريده في الشهادة</li>
-      <li><span class="n">3</span>احتفظ بهذه البطاقة، الكود يعمل على جهازين</li>
+      <li><span class="n">2</span>اكتب اسمك، يُسجَّل مع الكود ولا يتغيّر</li>
+      <li><span class="n">3</span>احتفظ بهذه البطاقة: الكود يرتبط بجهازك، وبه ترجع للدورة إذا خرجت</li>
     </ol>
     ${PC_NOTE}
   </section></div>`;
-  document.getElementById("pcGo").addEventListener("click", () => viewActivate());
+  document.getElementById("pcGo").addEventListener("click", () => { MODE = "new"; viewActivate(); });
   document.getElementById("pcCopy").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(code); toast("تم نسخ الكود"); }
+    try { await navigator.clipboard.writeText(code); SND.copy(); toast("تم نسخ الكود"); }
     catch(e) { const r = document.createRange(); r.selectNodeContents(document.getElementById("pcCode")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("الكود محدَّد، انسخه"); }
   });
 }
+let MODE = "new"; // "new" = first activation (name + code), "login" = returning on the same device (code only)
 function viewActivate(err){
+  const login = MODE === "login";
+  if (err) SND.err();
   app.innerHTML = `<div class="wrap">
   <section class="hero">
     <div class="eyebrow">دورة عملية · 5 مراحل · 16 قسماً</div>
@@ -558,12 +623,17 @@ function viewActivate(err){
     <div class="preview">${STAGES.map(s => `<span><b>${s.id}</b> ${s.title}</span>`).join("")}</div>
   </section>
   <form class="card act" id="actForm" novalidate>
-    <h2>فعّل دورتك</h2>
-    <div class="field"><label for="nm">اسمك كما تريده في الشهادة</label><input id="nm" autocomplete="name" value="${esc(S.name)}" placeholder="مثلاً: أبو محمد" required></div>
+    <div class="seg" role="tablist" aria-label="طريقة الدخول">
+      <button type="button" role="tab" data-mode="new" aria-selected="${!login}">تفعيل لأول مرة</button>
+      <button type="button" role="tab" data-mode="login" aria-selected="${login}">دخول بالكود</button>
+    </div>
+    <h2>${login ? "ارجع لدورتك" : "فعّل دورتك"}</h2>
+    ${login ? `<p class="sub">اكتب كود التفعيل نفسه، على نفس الجهاز الذي فعّلت منه أول مرة.</p>` :
+    `<div class="field"><label for="nm">اسمك</label><input id="nm" autocomplete="name" value="${esc(S.name)}" placeholder="مثلاً: أبو محمد" required><small class="fh">يُسجَّل مع الكود ولا يمكن تغييره لاحقاً.</small></div>`}
     <div class="field"><label for="cd">كود التفعيل</label><input id="cd" class="code" autocomplete="off" placeholder="XXXX-XXXX" value="${esc(PENDING || "")}" required></div>
-    ${err ? `<div class="msg err" role="alert">${esc(err)}</div>` : ""}
-    <button class="btn" id="actBtn" type="submit">ابدأ الرحلة</button>
-    ${LIVE ? `<p class="demo">الكود يُفعَّل باسمك، ويعمل على جهازين كحد أقصى (مثلاً الكمبيوتر والجوال).</p>` : `<div class="demo">نسخة تجريبية: للتجربة اكتب الكود <b>${DEMO_CODE}</b></div>`}
+    ${err ? `<div class="msg err" role="alert">${esc(err)}</div>${supportLink()}` : ""}
+    <button class="btn" id="actBtn" type="submit">${login ? "دخول" : "ابدأ الرحلة"}</button>
+    ${LIVE ? `<p class="demo">الكود يُفعَّل باسمك ويرتبط بهذا الجهاز فقط. إذا سجّلت خروج، ترجع بنفس الكود من نفس الجهاز.</p>` : `<div class="demo">نسخة تجريبية: للتجربة اكتب الكود <b>${DEMO_CODE}</b></div>`}
   </form>
   ${PC_NOTE}
   <div class="how">
@@ -577,19 +647,26 @@ function viewActivate(err){
     <div class="sgrid">${[1,2,3,4,5,6].map(i => `<video src="assets/samples/sample-${i}.mp4" poster="assets/samples/p${i}.jpg" autoplay muted loop playsinline preload="metadata" aria-label="مثال ${i}"></video>`).join("")}</div>
     <small>الأسماء التجارية في الأمثلة وهمية، صمّمناها للتوضيح فقط.</small>
   </section></div>`;
+  app.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => { MODE = b.dataset.mode; viewActivate(); }));
   document.getElementById("actForm").addEventListener("submit", async e => {
     e.preventDefault();
-    const name = document.getElementById("nm").value.trim();
+    const nmEl = document.getElementById("nm");
+    const name = nmEl ? nmEl.value.trim() : "";
     const code = document.getElementById("cd").value.trim().toUpperCase();
-    if (!name) return viewActivate("اكتب اسمك أولاً، سيظهر في شهادتك.");
+    if (!login && !name) return viewActivate("اكتب اسمك أولاً.");
     if (!code) return viewActivate("اكتب كود التفعيل الذي وصلك بعد الشراء.");
     const b = document.getElementById("actBtn"); b.disabled = true; b.textContent = "جارٍ التحقق…";
     const r = await verifyCode(code, name);
-    if (!r.ok) { S.name = name; return viewActivate(r.msg); }
-    S.name = r.name; S.code = r.code; S.active = true; save();
+    if (!r.ok) {
+      if (name) S.name = name;
+      if (r.reason === "name_required") MODE = "new";
+      return viewActivate(r.msg);
+    }
+    if (S.lastCode && S.lastCode !== r.code) S.done = {};
+    S.name = r.name; S.code = r.code; S.lastCode = r.code; S.active = true; save();
     PENDING = ""; try { sessionStorage.removeItem("mc-pending"); } catch(e) {}
-    viewMap();
-    toast(r.name !== name ? `مرحباً ${r.name}، الكود مفعّل باسمك من قبل` : "تم تفعيل دورتك. بالتوفيق!");
+    SND.ok(); viewMap();
+    toast(r.first ? "تم تفعيل دورتك. بالتوفيق!" : `أهلاً بعودتك يا ${r.name}`);
   });
 }
 
@@ -599,7 +676,7 @@ function viewMap(){
   app.innerHTML = bar() + `<div class="wrap">
   <section class="hello">
     <h1>${allDone ? "أنهيت الرحلة كاملة 🎉" : "تابع رحلتك"}</h1>
-    <p>${allDone ? "شهادتك جاهزة في آخر الصفحة." : `القسم التالي: <b>${cur.title}</b>`}</p>
+    <p>${allDone ? "أحسنت! كل الأقسام مفتوحة لك، ارجع لأي قسم متى ما احتجت." : `القسم التالي: <b>${cur.title}</b>`}</p>
   </section>
   ${STAGES.map(st => {
     const doneN = st.sections.filter(x => isDone(x.id)).length;
@@ -617,12 +694,12 @@ function viewMap(){
           <span class="lbl"><b>${x.title}</b><small>${d ? "أُنجز" : u ? x.min : "مقفل حتى تنهي ما قبله"}</small></span></button>`;
       }).join("")}</div></section>`;
   }).join("")}
-  ${allDone ? certificate() : ""}
-  <div class="foot"><span>تقدّمك محفوظ على هذا الجهاز.</span><button class="linkbtn" id="reset">البدء من جديد</button></div>
+  ${allDone ? finishCard() : ""}
+  <div class="foot"><span>تقدّمك محفوظ على هذا الجهاز.</span>${supportLink()}<button class="linkbtn" id="reset">البدء من جديد</button></div>
   </div>`;
   app.querySelectorAll(".node").forEach(n => n.addEventListener("click", () => {
     const id = n.dataset.sec;
-    if (!unlocked(id)) return toast("أنهِ القسم السابق أولاً ليُفتح هذا القسم");
+    if (!unlocked(id)) { SND.lock(); return toast("أنهِ القسم السابق أولاً ليُفتح هذا القسم"); }
     viewLesson(id);
   }));
   wireBar();
@@ -634,14 +711,12 @@ function viewMap(){
   if (cur) { const el = app.querySelector(`[data-sec="${cur.id}"]`); if (el && starCount()) el.scrollIntoView({block:"center"}); }
 }
 
-function certificate(){
-  const d = new Date().toLocaleDateString("ar-SA-u-ca-gregory", {year:"numeric", month:"long", day:"numeric"});
+function finishCard(){
   return `<section class="cert" style="margin-top:2rem">
     <div class="medal">${ICON.trophy.replace('<svg','<svg width="44" height="44"')}</div>
-    <h2>شهادة إتمام دورة</h2>
-    <div class="nm">${esc(S.name)}</div>
-    <p>أتمّ المراحل الخمس في دورة «اصنع فيديو موشن جرافيك مع Claude»</p>
-    <p style="font-size:.85rem">${d}</p>
+    <div class="nm">مبروك يا ${esc(S.name)}!</div>
+    <p>أنهيت المراحل الخمس، وصرت تعرف تصنع فيديو موشن جرافيك من الفكرة إلى الملف.</p>
+    <p>شارك فيديوك مع أهلك وأصحابك، وجرّب فكرة جديدة كل أسبوع.</p>
   </section>`;
 }
 
@@ -684,15 +759,17 @@ function viewLesson(id){
   app.querySelectorAll(".cpBtn").forEach(cp => cp.addEventListener("click", () => {
     const i = +cp.dataset.i, t = prompts[i].txt, el = document.getElementById("cp"+i);
     const sel = () => { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("حدّدت النص، انسخه من القائمة"); };
-    try { navigator.clipboard.writeText(t).then(() => { cp.textContent = "تم النسخ ✓"; toast("تم النسخ، الصقه في Claude"); setTimeout(() => cp.textContent = "نسخ", 2500); }, sel); } catch(e) { sel(); }
+    try { navigator.clipboard.writeText(t).then(() => { SND.copy(); cp.textContent = "تم النسخ ✓"; toast("تم النسخ، الصقه في Claude"); setTimeout(() => cp.textContent = "نسخ", 2500); }, sel); } catch(e) { sel(); }
   }));
   const doneRow = document.getElementById("doneRow");
   const renderDone = () => {
     if (isDone(id)) { doneRow.innerHTML = `<div class="donebadge">${ICON.star.replace('<svg','<svg width="22" height="22"')} طبّقت هذا القسم</div>`; return; }
-    doneRow.innerHTML = `<button class="btn big" id="markDone">${x.final ? "أنجزت مشروعي، أعطني الشهادة" : "طبّقتها ✓ افتح القسم التالي"}</button>`;
+    doneRow.innerHTML = `<button class="btn big" id="markDone">${x.final ? "أنجزت مشروعي 🎉" : "طبّقتها ✓ افتح القسم التالي"}</button>`;
     document.getElementById("markDone").addEventListener("click", () => {
       S.done[id] = Date.now(); save();
-      toast(x.final ? "مبروك! حصلت على شهادتك" : "+1 نجمة ★");
+      toast(x.final ? "مبروك! أنهيت الدورة كاملة" : "+1 نجمة ★");
+      const stageDone = x.stage.sections.every(s => isDone(s.id));
+      (x.final || stageDone) ? SND.win() : SND.star();
       renderDone(); showNext(x, false);
       document.querySelector(".stars").innerHTML = `${ICON.star.replace('<svg','<svg width="18" height="18"')} ${starCount()} من ${ALL.length}`;
       document.querySelector(".prog i").style.width = Math.round(starCount()/ALL.length*100) + "%";
@@ -711,12 +788,37 @@ function showNext(x, already){
   if (!already && stageEnd && x.stage.sections.every(s => isDone(s.id))) toast(nx ? `أنهيت المرحلة ${x.stage.id}! فُتحت المرحلة ${nx.stage.id}` : "أنهيت الرحلة كاملة!");
   row.innerHTML = nx
     ? `<button class="btn" id="goNext">${stageEnd ? `إلى المرحلة ${nx.stage.id} ←` : "القسم التالي ←"}</button><button class="btn ghost" id="goMap">الخريطة</button>`
-    : `<button class="btn gold" id="goMap">عرض شهادتي</button>`;
+    : `<button class="btn gold" id="goMap">إلى الخريطة</button>`;
   const g = document.getElementById("goNext"); if (g) g.addEventListener("click", () => viewLesson(nx.id));
   document.getElementById("goMap").addEventListener("click", () => { viewMap(); if (!nx) setTimeout(() => { const c = document.querySelector(".cert"); c && c.scrollIntoView({block:"center"}); }, 50); });
 }
 
+function logout(){
+  S.lastCode = S.code || S.lastCode; S.code = ""; S.name = ""; S.active = false; save();
+  MODE = "login"; viewActivate(); toast("سجّلت الخروج. ترجع بنفس الكود من هذا الجهاز.");
+}
+function confirmLogout(){
+  const d = document.createElement("div");
+  d.className = "modal"; d.setAttribute("role","dialog"); d.setAttribute("aria-modal","true"); d.setAttribute("aria-labelledby","mdT");
+  d.innerHTML = `<div class="modal-box"><h2 id="mdT">تسجيل الخروج؟</h2>
+    <p>تقدر ترجع في أي وقت بكتابة <b>كود التفعيل</b> على <b>هذا الجهاز</b>. احتفظ بالكود قبل ما تخرج.</p>
+    <div class="next-row"><button class="btn" id="mdYes">نعم، خروج</button><button class="btn ghost" id="mdNo">إلغاء</button></div></div>`;
+  document.body.appendChild(d);
+  const close = () => d.remove();
+  d.addEventListener("click", e => { if (e.target === d) close(); });
+  document.getElementById("mdNo").addEventListener("click", close);
+  document.getElementById("mdYes").addEventListener("click", () => { close(); logout(); });
+  document.getElementById("mdNo").focus();
+}
 function wireBar(){
+  const sb = document.getElementById("sndBtn");
+  if (sb) sb.addEventListener("click", () => {
+    S.sound = S.sound === false; save();
+    sb.setAttribute("aria-pressed", S.sound !== false); sb.innerHTML = S.sound !== false ? ICON.sound : ICON.mute;
+    sb.setAttribute("aria-label", S.sound !== false ? "كتم الأصوات" : "تشغيل الأصوات");
+    if (S.sound !== false) SND.ok();
+  });
+  const ob = document.getElementById("outBtn"); if (ob) ob.addEventListener("click", confirmLogout);
   app.querySelectorAll(".sizes button").forEach(b => b.addEventListener("click", () => {
     S.size = b.dataset.size; save(); applySize();
     app.querySelectorAll(".sizes button").forEach(o => o.setAttribute("aria-pressed", o === b));
@@ -724,6 +826,8 @@ function wireBar(){
 }
 
 async function boot(){
+  loadPublic();
+  if (!S.active && S.lastCode) MODE = "login";
   // card link from the store: #k=XXXX-XXXX (hash never reaches any server); read it, then clean the address bar
   const h = decodeURIComponent(location.hash || "");
   if (/^#(k=)?[A-Za-z0-9]{4}-?[A-Za-z0-9]{4}$/.test(h)) {
@@ -739,7 +843,7 @@ async function boot(){
   const r = await verifyCode(S.code || "", S.name);
   if (r.ok) { S.name = r.name; save(); return viewMap(); }
   if (r.reason === "network" || r.reason === "server" || r.reason === "rate_limited") { viewMap(); return toast(r.msg); }
-  S.active = false; save(); viewActivate(r.msg);
+  S.lastCode = S.code || S.lastCode; S.active = false; save(); MODE = "login"; viewActivate(r.msg);
 }
 boot();
 </script>

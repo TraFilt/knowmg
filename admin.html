@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة تحكم knowmg</title>
+<link rel="icon" href="assets/favicon-64.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#FBF7F1; --surface:#FFFFFF; --sunk:#F3ECE2; --ink:#1E2328; --soft:#5A6068; --line:#E7DED1;
+  --teal:#1F5F61; --teal-ink:#FFFFFF; --teal-soft:#DDECEA; --accent:#C8623F; --accent-soft:#F6E3D9;
+  --gold:#E8B04B; --gold-ink:#3A2A08; --ok:#2E7D4F; --ok-soft:#DFF1E5; --bad:#B3402A; --bad-soft:#F8E1DB;
+  --f:"IBM Plex Sans Arabic",Tahoma,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141A1B; --surface:#1C2425; --sunk:#232C2D; --ink:#EEF1EF; --soft:#A9B4B2; --line:#2F3A3B;
+  --teal:#3F9C97; --teal-ink:#0E1516; --teal-soft:#1F3433; --accent:#E8845F; --accent-soft:#3A2820;
+  --gold:#F0BE5E; --gold-ink:#2A1E05; --ok:#5FC08A; --ok-soft:#173427; --bad:#F08A72; --bad-soft:#3A221C; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:16px;line-height:1.7;padding:0 16px 3rem}
+.wrap{max-width:1040px;margin-inline:auto}
+h1,h2,h3{margin:0;line-height:1.3}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.top{display:flex;align-items:center;gap:.8rem;padding:1rem 0;border-bottom:1px solid var(--line);margin-bottom:1.2rem;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:1.15rem}
+.brand img{width:36px;height:36px;border-radius:10px}
+.brand small{font-weight:500;color:var(--soft);font-size:.85rem}
+.who{margin-inline-start:auto;color:var(--soft);font-size:.9rem;direction:ltr}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:0;border-radius:12px;padding:.55rem 1.1rem;font-weight:700;background:var(--teal);color:var(--teal-ink)}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1.5px solid var(--line)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn.sm{padding:.25rem .7rem;font-size:.85rem;border-radius:9px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:1.2rem}
+.login{max-width:420px;margin:12vh auto 0;display:grid;gap:.9rem;text-align:center}
+.login p{color:var(--soft)}
+input[type=text],input[type=email],input[type=number],input[type=url],select,textarea{width:100%;padding:.6rem .9rem;border:1.5px solid var(--line);border-radius:12px;background:var(--bg)}
+.ltr{direction:ltr;text-align:left}
+.tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+.tabs button{border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:.35rem 1rem;font-weight:600}
+.tabs button[aria-selected="true"]{background:var(--teal);color:var(--teal-ink);border-color:var(--teal)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1rem}
+.tile b{display:block;font-size:2rem;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile span{color:var(--soft);font-size:.9rem}
+.tile.g b{color:var(--ok)} .tile.t b{color:var(--teal)} .tile.r b{color:var(--bad)}
+@media (max-width:700px){.tiles{grid-template-columns:1fr 1fr}}
+.chart{margin-top:1rem}
+.bars{display:flex;align-items:flex-end;gap:3px;height:140px;padding-top:.5rem;direction:ltr}
+.bars div{flex:1;background:var(--teal);border-radius:4px 4px 0 0;min-height:2px;position:relative}
+.bars div:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-size:.75rem;padding:.1rem .4rem;border-radius:6px;white-space:nowrap}
+.axis{display:flex;justify-content:space-between;color:var(--soft);font-size:.75rem;direction:ltr}
+.filters{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.8rem}
+.filters input{flex:1;min-width:200px}
+.filters select{width:auto}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{padding:.55rem .7rem;text-align:right;border-bottom:1px solid var(--line);font-size:.9rem;vertical-align:middle}
+th{background:var(--sunk);font-weight:700}
+td.code{direction:ltr;text-align:left;font-weight:700;letter-spacing:.06em;white-space:nowrap}
+.st{display:inline-block;border-radius:99px;padding:0 .6rem;font-size:.8rem;font-weight:700}
+.st.available{background:var(--teal-soft);color:var(--teal)} .st.redeemed{background:var(--ok-soft);color:var(--ok)} .st.revoked{background:var(--bad-soft);color:var(--bad)}
+.acts{display:flex;gap:.3rem;flex-wrap:wrap}
+.pager{display:flex;gap:.6rem;align-items:center;justify-content:center;margin-top:.8rem;color:var(--soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media (max-width:700px){.grid2{grid-template-columns:1fr}}
+.field{display:grid;gap:.3rem;margin-bottom:.9rem}
+.field label{font-weight:700}
+.field small{color:var(--soft)}
+.switch{display:flex;align-items:center;gap:.6rem;font-weight:700}
+.switch input{width:1.2rem;height:1.2rem}
+.out{margin-top:1rem;display:grid;gap:.6rem}
+.out textarea{min-height:180px;font-size:.85rem}
+.msg{border-radius:12px;padding:.6rem 1rem;font-weight:600}
+.msg.err{background:var(--bad-soft);color:var(--bad)} .msg.ok{background:var(--ok-soft);color:var(--ok)}
+.toast{position:fixed;left:50%;bottom:1.2rem;transform:translate(-50%,160%);background:var(--ink);color:var(--bg);padding:.6rem 1.2rem;border-radius:12px;font-weight:700;transition:transform .3s, opacity .3s;opacity:0;z-index:9}
+.toast.show{transform:translate(-50%,0);opacity:1}
+.hint{color:var(--soft);font-size:.9rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="hint" style="margin-top:20vh;text-align:center">جارٍ التحميل…</p></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL = "https://eilocqqsjpxgnfzuxtny.supabase.co";
+const SB_KEY = "sb_publishable_BTO8n4k6dTElUVvYHAUkCw_Q7U9kSct";
+const ADMIN_API = SB_URL + "/functions/v1/course-admin";
+const REDIRECT = "https://trafilt.github.io/knowmg/admin.html";
+const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, detectSessionInUrl: true, flowType: "implicit" } });
+
+const app = document.getElementById("app");
+const toastEl = document.getElementById("toast");
+const toast = t => { toastEl.textContent = t; toastEl.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => toastEl.classList.remove("show"), 2600); };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = d => d ? new Date(d).toLocaleString("ar-SA-u-nu-latn", {year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "—";
+const ST = {available:"متاح", redeemed:"مفعّل", revoked:"موقوف"};
+
+async function api(action, extra = {}) {
+  const { data } = await sb.auth.getSession();
+  const token = data.session?.access_token;
+  const res = await fetch(ADMIN_API, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, "apikey": SB_KEY }, body: JSON.stringify({ action, ...extra }) });
+  const r = await res.json().catch(() => ({ ok: false, reason: "server" }));
+  if (r.reason === "forbidden") { await sb.auth.signOut(); viewLogin("هذا الحساب ليس حساب صاحب المتجر."); throw new Error("forbidden"); }
+  return r;
+}
+
+/* ---------- login ---------- */
+function viewLogin(err, sent) {
+  app.innerHTML = `<div class="card login">
+    <img src="assets/logo-260.png" alt="" width="72" height="72" style="margin:auto;border-radius:18px">
+    <h1>لوحة تحكم knowmg</h1>
+    ${sent ? `<div class="msg ok">أرسلنا رابط الدخول إلى بريدك. افتحه من نفس هذا المتصفح.</div>` :
+    `<p>اكتب بريد صاحب المتجر، ويصلك رابط دخول آمن بدون كلمة مرور.</p>
+    <input type="email" id="em" class="ltr" placeholder="you@example.com" autocomplete="email">
+    <button class="btn" id="go">أرسل رابط الدخول</button>`}
+    ${err ? `<div class="msg err">${esc(err)}</div>` : ""}
+  </div>`;
+  const go = document.getElementById("go");
+  if (!go) return;
+  go.addEventListener("click", async () => {
+    const email = document.getElementById("em").value.trim();
+    if (!email) return;
+    go.disabled = true; go.textContent = "جارٍ الإرسال…";
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT } });
+    if (error) return viewLogin(error.message.includes("rate") ? "طلبات كثيرة، انتظر دقيقة ثم حاول." : "تعذّر الإرسال: " + error.message);
+    viewLogin("", true);
+  });
+}
+
+/* ---------- shell ---------- */
+let TAB = "overview";
+function shell(email) {
+  app.innerHTML = `<header class="top">
+      <div class="brand"><img src="assets/logo-260.png" alt=""><div>لوحة تحكم knowmg<br><small>دورة الموشن جرافيك</small></div></div>
+      <div class="who">${esc(email)}</div>
+      <a class="btn ghost sm" href="./" target="_blank" rel="noopener">فتح الموقع</a>
+      <button class="btn ghost sm" id="out">خروج</button>
+    </header>
+    <nav class="tabs" role="tablist">
+      ${[["overview","نظرة عامة"],["codes","الأكواد والعملاء"],["generate","توليد أكواد"],["settings","إعدادات الموقع"]].map(([k,t]) => `<button role="tab" data-t="${k}" aria-selected="${TAB===k}">${t}</button>`).join("")}
+    </nav>
+    <main id="main"></main>`;
+  document.getElementById("out").onclick = async () => { await sb.auth.signOut(); viewLogin(); };
+  app.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { TAB = b.dataset.t; app.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b)); render(); });
+  render();
+}
+const main = () => document.getElementById("main");
+function render() { ({overview, codes, generate, settings})[TAB](); }
+
+/* ---------- overview ---------- */
+async function overview() {
+  main().innerHTML = `<p class="hint">جارٍ التحميل…</p>`;
+  const r = await api("stats");
+  if (!r.ok) return main().innerHTML = `<div class="msg err">تعذّر التحميل.</div>`;
+  const t = r.totals, max = Math.max(1, ...r.days.map(d => d.n));
+  main().innerHTML = `<div class="tiles">
+      <div class="tile g"><b>${t.redeemed}</b><span>عميل فعّل الدورة</span></div>
+      <div class="tile t"><b>${t.available}</b><span>كود متاح لم يُستخدم</span></div>
+      <div class="tile"><b>${r.active7}</b><span>نشِط آخر 7 أيام</span></div>
+      <div class="tile r"><b>${t.revoked}</b><span>كود موقوف</span></div>
+    </div>
+    <div class="card chart"><h3>التفعيلات في آخر 30 يوماً</h3>
+      <div class="bars">${r.days.map(d => `<div style="height:${d.n / max * 100}%" data-t="${d.day}: ${d.n}"></div>`).join("")}</div>
+      <div class="axis"><span>${r.days[0].day}</span><span>${r.days[r.days.length-1].day}</span></div>
+    </div>
+    <p class="hint" style="margin-top:.8rem">الأكواد المتاحة هنا تشمل كل الدفعات. الكمية المعروضة للبيع تتحكم فيها من منتج سلة.</p>`;
+}
+
+/* ---------- codes ---------- */
+let CQ = { q: "", status: "", offset: 0 };
+async function codes() {
+  main().innerHTML = `<div class="filters">
+      <input type="text" id="q" placeholder="ابحث بالكود أو اسم العميل أو اسم الدفعة" value="${esc(CQ.q)}">
+      <select id="st"><option value="">كل الحالات</option>${Object.entries(ST).map(([k,v]) => `<option value="${k}" ${CQ.status===k?"selected":""}>${v}</option>`).join("")}</select>
+      <button class="btn" id="find">بحث</button>
+    </div><div id="list"><p class="hint">جارٍ التحميل…</p></div>`;
+  const run = () => { CQ.q = document.getElementById("q").value.trim(); CQ.status = document.getElementById("st").value; CQ.offset = 0; loadCodes(); };
+  document.getElementById("find").onclick = run;
+  document.getElementById("q").onkeydown = e => { if (e.key === "Enter") run(); };
+  document.getElementById("st").onchange = run;
+  loadCodes();
+}
+async function loadCodes() {
+  const box = document.getElementById("list");
+  const r = await api("list", { q: CQ.q, status: CQ.status || null, limit: 50, offset: CQ.offset });
+  if (!r.ok) return box.innerHTML = `<div class="msg err">تعذّر التحميل.</div>`;
+  if (!r.rows.length) return box.innerHTML = `<p class="hint">لا توجد نتائج.</p>`;
+  box.innerHTML = `<div class="tbl"><table>
+    <thead><tr><th>الكود</th><th>الحالة</th><th>العميل</th><th>تاريخ التفعيل</th><th>الأجهزة</th><th>آخر دخول</th><th>الدفعة</th><th>إجراءات</th></tr></thead>
+    <tbody>${r.rows.map(x => `<tr>
+      <td class="code">${esc(x.code)}</td>
+      <td><span class="st ${x.status}">${ST[x.status]}</span></td>
+      <td>${esc(x.buyer_name) || "—"}</td>
+      <td>${fmt(x.redeemed_at)}</td>
+      <td>${x.devices}</td>
+      <td>${fmt(x.last_seen)}</td>
+      <td>${esc(x.note) || "—"}</td>
+      <td><div class="acts">
+        ${x.devices ? `<button class="btn ghost sm" data-a="reset_devices" data-c="${x.code}" title="يسمح للعميل بالدخول من جهاز جديد">فك ربط الجهاز</button>` : ""}
+        ${x.status !== "available" ? `<button class="btn ghost sm" data-a="rename" data-c="${x.code}" data-n="${esc(x.buyer_name)}">تعديل الاسم</button>` : ""}
+        ${x.status === "revoked" ? `<button class="btn sm" data-a="restore" data-c="${x.code}">إعادة تفعيل</button>` : `<button class="btn danger sm" data-a="revoke" data-c="${x.code}">إيقاف</button>`}
+      </div></td></tr>`).join("")}</tbody></table></div>
+    <div class="pager">
+      <button class="btn ghost sm" id="prev" ${CQ.offset ? "" : "disabled"}>السابق</button>
+      <span>${CQ.offset + 1}–${CQ.offset + r.rows.length} من ${r.total}</span>
+      <button class="btn ghost sm" id="next" ${CQ.offset + r.rows.length < r.total ? "" : "disabled"}>التالي</button>
+    </div>`;
+  document.getElementById("prev").onclick = () => { CQ.offset = Math.max(0, CQ.offset - 50); loadCodes(); };
+  document.getElementById("next").onclick = () => { CQ.offset += 50; loadCodes(); };
+  box.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
+    const a = b.dataset.a, code = b.dataset.c;
+    const Q = { revoke: `إيقاف الكود ${code}؟ لن يستطيع صاحبه الدخول للدورة.`, restore: `إعادة تفعيل الكود ${code}؟`, reset_devices: `فك ربط الجهاز عن الكود ${code}؟ سيتمكن العميل من الدخول من جهاز جديد مرة واحدة.` };
+    let extra = { code };
+    if (a === "rename") { const n = prompt("اسم العميل الجديد:", b.dataset.n || ""); if (!n || !n.trim()) return; extra.name = n.trim(); }
+    else if (!confirm(Q[a])) return;
+    b.disabled = true;
+    const r = await api(a, extra);
+    toast(r.ok ? "تم" : "تعذّر التنفيذ");
+    loadCodes();
+  });
+}
+
+/* ---------- generate ---------- */
+function generate() {
+  main().innerHTML = `<div class="card">
+      <h3>توليد أكواد جديدة</h3>
+      <p class="hint">كل كود يخرج معه رابط البطاقة. انسخ الروابط والصقها في منتج سلة (أكواد البطاقات الرقمية ← إدخال يدوي)، فيصل العميل رابط بطاقته بعد الشراء.</p>
+      <div class="grid2" style="margin-top:.8rem">
+        <div class="field"><label for="n">العدد</label><input type="number" id="n" min="1" max="500" value="50"></div>
+        <div class="field"><label for="note">اسم الدفعة (اختياري)</label><input type="text" id="note" placeholder="مثلاً: دفعة نوفمبر"></div>
+      </div>
+      <button class="btn" id="mk">ولّد الأكواد</button>
+      <div class="out" id="out"></div>
+    </div>`;
+  document.getElementById("mk").onclick = async () => {
+    const n = Number(document.getElementById("n").value);
+    if (!(n >= 1 && n <= 500)) return toast("العدد من 1 إلى 500");
+    if (!confirm(`سيتم إنشاء ${n} كود جديد. متابعة؟`)) return;
+    const b = document.getElementById("mk"); b.disabled = true; b.textContent = "جارٍ التوليد…";
+    const r = await api("generate", { n, note: document.getElementById("note").value });
+    b.disabled = false; b.textContent = "ولّد الأكواد";
+    if (!r.ok) return toast("تعذّر التوليد");
+    const links = r.codes.map(c => c.link).join("\n");
+    const csv = "code,card_link\n" + r.codes.map(c => `${c.code},${c.link}`).join("\n");
+    document.getElementById("out").innerHTML = `<div class="msg ok">تم إنشاء ${r.codes.length} كود في دفعة «${esc(r.note)}».</div>
+      <textarea class="ltr" readonly id="links">${esc(links)}</textarea>
+      <div class="acts"><button class="btn" id="cp">نسخ الروابط لسلة</button><button class="btn ghost" id="dl">تحميل ملف CSV</button></div>`;
+    document.getElementById("cp").onclick = async () => { try { await navigator.clipboard.writeText(links); toast("تم النسخ"); } catch (e) { document.getElementById("links").select(); toast("حدّد النص وانسخه"); } };
+    document.getElementById("dl").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })); a.download = `knowmg-codes-${r.note}.csv`; a.click(); };
+  };
+}
+
+/* ---------- settings ---------- */
+async function settings() {
+  main().innerHTML = `<p class="hint">جارٍ التحميل…</p>`;
+  const r = await api("settings_get");
+  if (!r.ok) return main().innerHTML = `<div class="msg err">تعذّر التحميل.</div>`;
+  const s = r.settings;
+  main().innerHTML = `<div class="card">
+      <div class="field"><label for="ann">إعلان أعلى الموقع</label>
+        <textarea id="ann" rows="3" maxlength="400" placeholder="مثلاً: أضفنا قسماً جديداً عن الصوت!">${esc(s.announcement)}</textarea>
+        <small>يظهر لكل الزوار في شريط أعلى الموقع. اتركه فارغاً لإخفائه.</small></div>
+      <div class="field"><label for="sup">رابط الدعم (واتساب أو غيره)</label>
+        <input type="url" id="sup" class="ltr" placeholder="https://wa.me/9665XXXXXXXX" value="${esc(s.support_url)}">
+        <small>يظهر زر «تواصل معنا» في الموقع ورسائل المشاكل.</small></div>
+      <div class="field"><label for="md">عدد الأجهزة لكل كود</label>
+        <select id="md">${[1,2,3].map(n => `<option value="${n}" ${String(s.max_devices||"1")===String(n)?"selected":""}>${n === 1 ? "جهاز واحد فقط" : n + " أجهزة"}</option>`).join("")}</select></div>
+      <div class="field"><label class="switch"><input type="checkbox" id="open" ${s.registration_open !== "false" ? "checked" : ""}> استقبال تفعيلات جديدة</label>
+        <small>عند إيقافه لا يُقبل أي كود جديد، ويبقى العملاء الحاليون يدخلون عادي.</small></div>
+      <button class="btn" id="save">حفظ الإعدادات</button>
+    </div>`;
+  document.getElementById("save").onclick = async () => {
+    const r = await api("settings_set", { settings: {
+      announcement: document.getElementById("ann").value.trim(),
+      support_url: document.getElementById("sup").value.trim(),
+      max_devices: Number(document.getElementById("md").value),
+      registration_open: document.getElementById("open").checked } });
+    toast(r.ok ? "تم الحفظ" : (r.reason === "bad_url" ? "الرابط لازم يبدأ بـ https://" : "تعذّر الحفظ"));
+  };
+}
+
+/* ---------- boot ---------- */
+(async () => {
+  const hashErr = new URLSearchParams(location.hash.slice(1)).get("error_description");
+  const { data } = await sb.auth.getSession();
+  if (location.hash) history.replaceState(null, "", location.pathname);
+  if (!data.session) return viewLogin(hashErr ? "انتهت صلاحية الرابط، اطلب رابطاً جديداً." : "");
+  try { await api("settings_get"); shell(data.session.user.email); } catch (e) {}
+})();
+</script>
+</body>
+</html>
