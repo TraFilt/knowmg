@@ -73,7 +73,8 @@ button:disabled{opacity:.35;cursor:default}
   </div>
   <details class="box rules">
     <summary style="color:var(--ink);font-weight:600">القوانين</summary>
-    قوة الورق: إكه ← شايب ← ولد ← بنت ← ١٠ ← ٩ … ← ٢ (الشكل ما يفرق).<br>
+    قوة الورق: إكه ← شايب ← ولد ← بنت ← ١٠ ← ٩ … (الشكل ما يفرق).<br>
+    عدد الورق على عدد اللاعبين: كل لاعب = رقم واحد بأشكاله الأربعة، فيتوزع الورق كله. مثلاً ٤ لاعبين: إكه إلى بنت، ٧ لاعبين: إكه إلى ٨.<br>
     كل لاعب يبدأ بـ ١٠٠,٠٠٠. كل جولة يدفع الكل الدخولية للصندوق ويتوزع لكل واحد ٤ ورق عشوائي.<br>
     المزايدة: تراهن بمبلغ الصندوق كامل أو بأعلى من اللي قبلك. أعلى مراهن هو "الكبير".<br>
     أي أحد (غير الكبير) يقدر ينسحب أي وقت.<br>
@@ -119,7 +120,8 @@ function cardHTML(c, sm){
 function backHTML(sm){ return `<div class="c back ${sm?'sm':''}"></div>`; }
 function handVal(cs){ return cs.map(c=>RANKS[c[0]]).sort((a,b)=>b-a); }
 function cmp(a,b){ for(let i=0;i<Math.max(a.length,b.length);i++){ const d=(a[i]||0)-(b[i]||0); if(d) return d; } return 0; }
-function deck(){ const d=[]; for(const r of Object.keys(RANKS)) for(const s of Object.keys(SUIT)) d.push(r+s);
+const ORDER=['A','K','J','Q','T','9','8','7','6','5','4','3','2'];
+function deck(n){ const d=[]; for(const r of ORDER.slice(0,n)) for(const s of Object.keys(SUIT)) d.push(r+s);
   for(let i=d.length-1;i>0;i--){ const a=new Uint32Array(1); crypto.getRandomValues(a); const j=a[0]%(i+1); [d[i],d[j]]=[d[j],d[i]]; } return d; }
 
 // ---------- host state ----------
@@ -132,12 +134,12 @@ function startRound(){
   const ks = Object.keys(S.P);
   const ready = ks.filter(k=>S.P[k].b>=S.ante);
   if(ready.length<2){ log('لازم لاعبين اثنين على الأقل معهم رصيد'); return; }
-  const d=deck(); S.pot=0;
+  const d=deck(ready.length); S.lowest=ORDER[ready.length-1]; S.pot=0;
   for(const k of ks){ const p=S.P[k];
     if(p.b>=S.ante){ p.s='in'; p.b-=S.ante; S.pot+=S.ante; p.c=d.splice(0,4); }
     else { p.s='x'; p.c=[]; } }
   S.ph='bet'; S.rd++; S.bid=0; S.ld=null; S.off=null; S.res=null;
-  log(`الجولة ${S.rd} بدأت — الصندوق ${fmt(S.pot)}`);
+  log(`الجولة ${S.rd} بدأت — الورق من الإكه إلى ${RNAME[S.lowest]||S.lowest} — الصندوق ${fmt(S.pot)}`);
 }
 function finishSingle(){
   const ins=inKeys(); if(ins.length!==1) return false;
@@ -193,7 +195,7 @@ function apply(k,a){
 }
 function addPlayer(k,name){
   if(S.P[k]){ if(name && S.P[k].n!==name) S.P[k].n=name; return; }
-  if(Object.keys(S.P).length>=12) return;
+  if(Object.keys(S.P).length>=13) return;
   S.P[k]={n:name, b:START_BAL, s:'w', c:[]};
   log(`${name} دخل 👋`);
 }
@@ -304,7 +306,7 @@ function render(){
     <div class="stat"><b>${fmt(S.pot)}</b><span>الصندوق</span></div>
     <div class="stat"><b>${fmt(S.bid)}</b><span>أعلى رهان${S.ld?' — '+esc(nm(S.ld)):''}</span></div>
     <div class="stat"><b>${fmt(me.b)}</b><span>رصيدك</span></div></div>
-    <div class="small center" style="margin-top:6px">${ph==='lobby'?'بانتظار البداية':ph==='bet'?'الجولة '+S.rd+' — المزايدة شغالة':'الجولة '+S.rd+' انتهت'} · الدخولية ${fmt(S.ante)}</div></div>`;
+    <div class="small center" style="margin-top:6px">${ph==='lobby'?'بانتظار البداية':ph==='bet'?'الجولة '+S.rd+' — المزايدة شغالة':'الجولة '+S.rd+' انتهت'} · الدخولية ${fmt(S.ante)}${S.lowest&&ph!=='lobby'?' · الورق إكه ← '+(RNAME[S.lowest]||S.lowest):''}</div></div>`;
 
   if(S.res && ph==='show') h+=`<div class="banner">${esc(S.res.txt)}</div>`;
 
