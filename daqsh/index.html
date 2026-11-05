@@ -73,15 +73,14 @@ button:disabled{opacity:.35;cursor:default}
   </div>
   <details class="box rules">
     <summary style="color:var(--ink);font-weight:600">القوانين</summary>
-    قوة الورق: إكه ← شايب ← ولد ← بنت ← ١٠ ← ٩ … (الشكل ما يفرق).<br>
-    عدد الورق على عدد اللاعبين: كل لاعب = رقم واحد بأشكاله الأربعة، فيتوزع الورق كله. مثلاً ٤ لاعبين: إكه إلى بنت، ٧ لاعبين: إكه إلى ٨.<br>
-    كل لاعب يبدأ بـ ١٠٠,٠٠٠. كل جولة يدفع الكل الدخولية للصندوق ويتوزع لكل واحد ٤ ورق عشوائي.<br>
-    المزايدة: تراهن بمبلغ الصندوق كامل أو بأعلى من اللي قبلك. أعلى مراهن هو "الكبير".<br>
-    أي أحد (غير الكبير) يقدر ينسحب أي وقت.<br>
-    الكبير يقدر يعرض فلوس من رصيده على لاعب عشان ينسحب، واللاعب يقبل أو يرفض.<br>
-    الكبير يضغط "داقش" ← تنكشف أوراق الباقين: الأقوى يقارن من أكبر ورقة، وإذا تساووا الورقة اللي بعدها.<br>
-    الفايز ياخذ الصندوق، وكل خسران من الباقين يدفع له مبلغ الرهان.<br>
-    إذا انسحب الكل وبقي واحد، ياخذ الصندوق.
+    كل لاعب يبدأ بـ ١٠٠,٠٠٠، واللي يوصل <b>مليون</b> يفوز باللعبة.<br>
+    قوة الورق: إكه ← شايب ← ولد ← بنت ← ١٠ ← ٩ … (الشكل ما يفرق). الورق على عدد اللاعبين وكل واحد ياخذ ٤.<br>
+    <b>المزايدة بالدور</b> من أول واحد دخل: تراهن بأي مبلغ من رصيدك، واللي بعدك لازم أعلى منك، أو يدخل بالصندوق كامل (رصيده كله)، أو ينسحب ببلاش.<br>
+    <b>الكبير</b> (أعلى رهان) يوزّع من رهانه على اللي يبيهم ما ينافسونه، مبلغ لكل واحد.<br>
+    الباقي: يقبل التوزيع، أو يداقش، أو ينسحب.<br>
+    <b>إذا فاز الكبير</b>: ياخذ رهانه ناقص اللي وزّعه، والموزّع لهم ياخذون مبالغهم، وكل مداقش يخسر رهانه.<br>
+    <b>إذا غلبه مداقش</b>: المداقش ياخذ مبلغ رهانه، والكبير يخسر رهانه كامل، والموزّع لهم ما ياخذون شي.<br>
+    إذا ما أحد داقش: الكبير يدفع المبالغ اللي وزّعها.
   </details>
 </div>
 
@@ -91,140 +90,147 @@ const SB_URL="https://eilocqqsjpxgnfzuxtny.supabase.co", SB_KEY="sb_publishable_
 const qs=new URLSearchParams(location.search);
 let CODE=(qs.get('r')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
 const roomUrl=()=>location.origin+location.pathname+'?r='+CODE;
-const START_BAL = 100000;
-const RANKS = {A:14,K:13,J:12,Q:11,T:10,'9':9,'8':8,'7':7,'6':6,'5':5,'4':4,'3':3,'2':2};
-const RNAME = {A:'إكه',K:'شايب',J:'ولد',Q:'بنت',T:'10'};
-const SUIT = {S:'♠',H:'♥',D:'♦',C:'♣'};
-const $ = s => document.querySelector(s);
-const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt = n => Number(n||0).toLocaleString('en-US');
-const clip = (s,n) => String(s||'').replace(/[\u0000-\u001f]/g,'').trim().slice(0,n);
+const START_BAL=100000, GOAL=1000000;
+const ORDER=['A','K','J','Q','T','9','8','7','6','5','4','3','2'];
+const RANKS={A:14,K:13,J:12,Q:11,T:10,'9':9,'8':8,'7':7,'6':6,'5':5,'4':4,'3':3,'2':2};
+const RNAME={A:'إكه',K:'شايب',J:'ولد',Q:'بنت',T:'10'};
+const SUIT={S:'♠',H:'♥',D:'♦',C:'♣'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>Number(n||0).toLocaleString('en-US');
+const clip=(s,n)=>String(s||'').replace(/[\u0000-\u001f]/g,'').trim().slice(0,n);
+const rname=r=>RNAME[r]||r;
 
-let ready=false, room=null, chan=null, isHost=false, myKey=null, myName='', S=null, hostSeen=false;
-const seen = {};
-try{ myName = localStorage.getItem('daqsh_name')||''; }catch(e){}
+let ready=false, chan=null, isHost=false, myKey=null, myName='', S=null, hostSeen=false;
+const seen={};
+try{ myName=localStorage.getItem('daqsh_name')||''; }catch(e){}
 try{ myKey=localStorage.getItem('daqsh_id'); if(!myKey){ myKey='p'+Math.random().toString(36).slice(2,10); localStorage.setItem('daqsh_id',myKey);} }catch(e){ myKey='p'+Math.random().toString(36).slice(2,10); }
 
-// ---------- QR ----------
-$('#qrBtn').onclick = () => {
-  const w=$('#qrWrap'); w.classList.toggle('hide');
-  if(!w.dataset.done && window.QRCode){ new QRCode($('#qr'),{text:roomUrl(),width:220,height:220}); w.dataset.done=1; }
-  else if(!window.QRCode){ $('#qr').textContent = roomUrl(); }
-};
+$('#qrBtn').onclick=()=>{ const w=$('#qrWrap'); w.classList.toggle('hide');
+  if(!w.dataset.done&&window.QRCode){ new QRCode($('#qr'),{text:roomUrl(),width:220,height:220}); w.dataset.done=1; }
+  else if(!window.QRCode){ $('#qr').textContent=roomUrl(); } };
 
 // ---------- cards ----------
-function cardHTML(c, sm){
-  const r=c[0], s=c[1], red=(s==='H'||s==='D');
-  return `<div class="c ${red?'red':''} ${sm?'sm':''}"><div class="r">${r==='T'?'10':r}</div><div class="s">${SUIT[s]}</div><div class="n">${RNAME[r]||''}</div></div>`;
-}
-function backHTML(sm){ return `<div class="c back ${sm?'sm':''}"></div>`; }
+function cardHTML(c,sm){ const r=c[0],s=c[1],red=(s==='H'||s==='D');
+  return `<div class="c ${red?'red':''} ${sm?'sm':''}"><div class="r">${r==='T'?'10':r}</div><div class="s">${SUIT[s]}</div><div class="n">${RNAME[r]||''}</div></div>`; }
 function handVal(cs){ return cs.map(c=>RANKS[c[0]]).sort((a,b)=>b-a); }
 function cmp(a,b){ for(let i=0;i<Math.max(a.length,b.length);i++){ const d=(a[i]||0)-(b[i]||0); if(d) return d; } return 0; }
-const ORDER=['A','K','J','Q','T','9','8','7','6','5','4','3','2'];
 function deck(n){ const d=[]; for(const r of ORDER.slice(0,n)) for(const s of Object.keys(SUIT)) d.push(r+s);
   for(let i=d.length-1;i>0;i--){ const a=new Uint32Array(1); crypto.getRandomValues(a); const j=a[0]%(i+1); [d[i],d[j]]=[d[j],d[i]]; } return d; }
 
-// ---------- host state ----------
-function fresh(){ return {v:0, ph:'lobby', rd:0, pot:0, ante:1000, bid:0, ld:null, off:null, res:null, P:{}, log:[]}; }
-function log(t){ S.log.unshift(t); S.log = S.log.slice(0,6); }
-function inKeys(){ return Object.keys(S.P).filter(k=>S.P[k].s==='in'); }
+// ---------- state (host only mutates) ----------
+// ph: lobby | bet | split | resp | show | over
+// player: {n,b,c,s:'in'|'f'|'w'|'x', bet, acted, off, r:null|'acc'|'dq'|'f'}
+function fresh(){ return {v:0,ph:'lobby',rd:0,bid:0,ld:null,turn:null,order:[],lowest:null,res:null,champ:null,P:{},log:[]}; }
+function log(t){ S.log.unshift(t); S.log=S.log.slice(0,6); }
 function nm(k){ return (S.P[k]&&S.P[k].n)||'؟'; }
+function inKeys(){ return S.order.filter(k=>S.P[k]&&S.P[k].s==='in'); }
+function others(){ return inKeys().filter(k=>k!==S.ld); }
 
 function startRound(){
-  const ks = Object.keys(S.P);
-  const ready = ks.filter(k=>S.P[k].b>=S.ante);
+  const ks=Object.keys(S.P);
+  const ready=ks.filter(k=>S.P[k].b>0);
   if(ready.length<2){ log('لازم لاعبين اثنين على الأقل معهم رصيد'); return; }
-  const d=deck(ready.length); S.lowest=ORDER[ready.length-1]; S.pot=0;
-  for(const k of ks){ const p=S.P[k];
-    if(p.b>=S.ante){ p.s='in'; p.b-=S.ante; S.pot+=S.ante; p.c=d.splice(0,4); }
-    else { p.s='x'; p.c=[]; } }
-  S.ph='bet'; S.rd++; S.bid=0; S.ld=null; S.off=null; S.res=null;
-  log(`الجولة ${S.rd} بدأت — الورق من الإكه إلى ${RNAME[S.lowest]||S.lowest} — الصندوق ${fmt(S.pot)}`);
+  if(ready.length>13){ log('أكثر شي ١٣ لاعب'); return; }
+  const d=deck(ready.length);
+  for(const k of ks){ const p=S.P[k]; p.bet=0; p.acted=false; p.off=0; p.r=null;
+    if(p.b>0){ p.s='in'; p.c=d.splice(0,4); } else { p.s='x'; p.c=[]; } }
+  S.order=ready; S.lowest=ORDER[ready.length-1];
+  S.ph='bet'; S.rd++; S.bid=0; S.ld=null; S.res=null; S.turn=ready[0];
+  log(`الجولة ${S.rd} — الورق من الإكه إلى ${rname(S.lowest)} — يبدأ ${nm(S.turn)}`);
 }
-function finishSingle(){
-  const ins=inKeys(); if(ins.length!==1) return false;
-  const w=ins[0]; S.P[w].b+=S.pot;
-  S.res={w:[w], show:[], txt:`${nm(w)} أخذ الصندوق ${fmt(S.pot)} (الكل انسحب)`};
-  log(S.res.txt); S.pot=0; S.ph='show'; S.off=null; return true;
+function nextTurn(){
+  const nx=S.order.find(k=>S.P[k]&&S.P[k].s==='in'&&!S.P[k].acted);
+  if(nx){ S.turn=nx; return; }
+  S.turn=null;
+  if(!S.ld){ S.res={txt:'ما أحد راهن — جولة جديدة',show:[]}; log(S.res.txt); S.ph='show'; return; }
+  if(others().length===0){ S.res={txt:`${nm(S.ld)} الوحيد اللي راهن — ما فيه منافس`,show:[]}; log(S.res.txt); S.ph='show'; return; }
+  S.ph='split'; log(`👑 ${nm(S.ld)} أعلى مراهن بـ ${fmt(S.bid)} — يوزّع الحين`);
 }
-function showdown(){
-  const ins=inKeys();
-  let best=null, winners=[];
-  for(const k of ins){ const v=handVal(S.P[k].c); const r=best?cmp(v,best):1;
-    if(r>0){best=v;winners=[k];} else if(r===0) winners.push(k); }
-  let collected=0;
-  for(const k of ins){ if(winners.includes(k)) continue; const p=S.P[k]; const pay=Math.min(S.bid,p.b); p.b-=pay; collected+=pay; }
-  const total=S.pot+collected, share=Math.floor(total/winners.length);
-  winners.forEach(k=>S.P[k].b+=share);
-  const names=winners.map(nm).join(' و ');
-  S.res={w:winners, show:ins, txt:`🔥 داقش! ${names} ${winners.length>1?'تعادلوا وتقاسموا':'فاز بـ'} ${fmt(total)}`};
-  log(S.res.txt); S.pot=0; S.ph='show'; S.off=null;
+function checkResp(){
+  const os=others();
+  if(os.some(k=>!S.P[k].r)) return;
+  resolve();
 }
+function resolve(){
+  const L=S.P[S.ld], B=S.bid;
+  const allies=others().filter(k=>S.P[k].r==='acc');
+  const chall=others().filter(k=>S.P[k].r==='dq');
+  const D=allies.reduce((a,k)=>a+S.P[k].off,0);
+  const lv=handVal(L.c);
+  const lines=[];
+  if(chall.length===0){
+    L.b-=D; allies.forEach(k=>{ S.P[k].b+=S.P[k].off; });
+    const t=D?`ما أحد داقش — ${L.n} دفع ${fmt(D)} للي وزّع عليهم`:`ما أحد داقش — الجولة انتهت`;
+    S.res={txt:t,show:[],w:[S.ld]}; log(t);
+  } else {
+    const beat=chall.filter(k=>cmp(handVal(S.P[k].c),lv)>0);
+    const lost=chall.filter(k=>cmp(handVal(S.P[k].c),lv)<0);
+    lost.forEach(k=>{ S.P[k].b-=S.P[k].bet; lines.push(`${nm(k)} خسر ${fmt(S.P[k].bet)}`); });
+    if(beat.length===0){
+      L.b+=(B-D); allies.forEach(k=>{ S.P[k].b+=S.P[k].off; });
+      S.res={txt:`🔥 ${L.n} فاز بالداقش (+${fmt(B-D)})${D?' والموزّع لهم أخذوا '+fmt(D):''}`,show:[S.ld,...chall],w:[S.ld]};
+    } else {
+      L.b-=B; beat.forEach(k=>{ S.P[k].b+=S.P[k].bet; lines.push(`${nm(k)} كسب ${fmt(S.P[k].bet)}`); });
+      S.res={txt:`🔥 ${beat.map(nm).join(' و ')} غلب ${L.n} — ${L.n} خسر ${fmt(B)}`,show:[S.ld,...chall],w:beat};
+    }
+    log(S.res.txt+(lines.length?' · '+lines.join(' · '):''));
+  }
+  for(const k in S.P) if(S.P[k].b<0) S.P[k].b=0;
+  S.ph='show'; S.turn=null;
+  const champ=Object.keys(S.P).filter(k=>S.P[k].b>=GOAL).sort((a,b)=>S.P[b].b-S.P[a].b)[0];
+  if(champ){ S.champ=champ; S.ph='over'; log(`🏆 ${nm(champ)} وصل المليون وفاز باللعبة!`); }
+}
+
 function apply(k,a){
   const p=S.P[k]; if(!p||!a) return;
-  const hostOnly = k===myKey;
+  const host=k===myKey;
   switch(a.t){
-    case 'bid': {
-      if(S.ph!=='bet'||p.s!=='in') return;
-      const amt=Math.floor(Number(a.amt));
-      if(!(amt>S.bid) || amt<500 || amt>p.b) return;
-      S.bid=amt; S.ld=k; S.off=null; log(`${p.n} راهن ${fmt(amt)}`); break; }
-    case 'fold':
-      if(S.ph!=='bet'||p.s!=='in'||k===S.ld) return;
-      p.s='f'; if(S.off&&S.off.to===k) S.off=null; log(`${p.n} انسحب`); finishSingle(); break;
-    case 'offer': {
-      if(S.ph!=='bet'||k!==S.ld) return;
-      const t=S.P[a.to], amt=Math.floor(Number(a.amt));
-      if(!t||t.s!=='in'||a.to===k||!(amt>0)||amt>p.b) return;
-      S.off={to:a.to, amt}; log(`${p.n} يعرض ${fmt(amt)} على ${t.n} عشان ينسحب`); break; }
-    case 'cancel':
-      if(k===S.ld&&S.off){ S.off=null; } break;
-    case 'accept': {
-      if(!S.off||S.off.to!==k||p.s!=='in') return;
-      const L=S.P[S.ld]; const pay=Math.min(S.off.amt,L.b); L.b-=pay; p.b+=pay; p.s='f';
-      log(`${p.n} قبل ${fmt(pay)} وانسحب`); S.off=null; finishSingle(); break; }
-    case 'reject':
-      if(!S.off||S.off.to!==k) return; log(`${p.n} رفض العرض 😤`); S.off=null; break;
-    case 'daqsh':
-      if(S.ph!=='bet'||k!==S.ld) return; showdown(); break;
-    case 'start': if(hostOnly && (S.ph==='lobby'||S.ph==='show')) startRound(); break;
-    case 'ante': if(hostOnly && S.ph!=='bet'){ const v=Math.floor(Number(a.v)); if(v>=100&&v<=50000) S.ante=v; } break;
-    case 'kick': if(hostOnly && a.k!==myKey && S.P[a.k]){ log(`${S.P[a.k].n} طلع`); if(S.ld===a.k){S.ld=null;S.bid=0;S.off=null;} delete S.P[a.k]; if(S.ph==='bet') finishSingle(); } break;
-    case 'reset': if(hostOnly){ const keep=S.P; S=fresh(); for(const kk in keep) S.P[kk]={n:keep[kk].n,b:START_BAL,s:'w',c:[]}; log('لعبة جديدة — الأرصدة رجعت ١٠٠,٠٠٠'); } break;
+    case 'bid': { if(S.ph!=='bet'||S.turn!==k) return;
+      const amt=Math.floor(Number(a.amt)); if(!(amt>S.bid)||amt>p.b||amt<1) return;
+      p.bet=amt; p.acted=true; S.bid=amt; S.ld=k; log(`${p.n} راهن ${fmt(amt)}`); nextTurn(); break; }
+    case 'allin': { if(S.ph!=='bet'||S.turn!==k||p.b<=0) return;
+      p.bet=p.b; p.acted=true; if(p.bet>S.bid){ S.bid=p.bet; S.ld=k; }
+      log(`${p.n} دخل بالصندوق كامل ${fmt(p.bet)}`); nextTurn(); break; }
+    case 'pass': { if(S.ph!=='bet'||S.turn!==k) return;
+      if(S.ld===k) return; p.s='f'; p.acted=true; log(`${p.n} انسحب`); nextTurn(); break; }
+    case 'split': { if(S.ph!=='split'||k!==S.ld) return;
+      const offs=a.offs||{}; let tot=0; const os=others();
+      for(const o of os){ const v=Math.max(0,Math.floor(Number(offs[o])||0)); S.P[o].off=v; tot+=v; }
+      if(tot>S.bid){ os.forEach(o=>S.P[o].off=0); return; }
+      os.forEach(o=>S.P[o].r=null);
+      S.ph='resp'; log(`${p.n} وزّع ${fmt(tot)} من رهانه${tot?' على: '+os.filter(o=>S.P[o].off).map(o=>nm(o)+' '+fmt(S.P[o].off)).join('، '):''}`); break; }
+    case 'acc': if(S.ph!=='resp'||k===S.ld||p.s!=='in'||p.r||!p.off) return; p.r='acc'; log(`${p.n} قبل التوزيع ${fmt(p.off)} 🤝`); checkResp(); break;
+    case 'dq': if(S.ph!=='resp'||k===S.ld||p.s!=='in'||p.r) return; p.r='dq'; log(`${p.n} داقش 🔥`); checkResp(); break;
+    case 'fold': if(S.ph!=='resp'||k===S.ld||p.s!=='in'||p.r) return; p.r='f'; p.s='f'; log(`${p.n} انسحب`); checkResp(); break;
+    case 'start': if(host&&(S.ph==='lobby'||S.ph==='show')) startRound(); break;
+    case 'kick': if(host&&a.k!==myKey&&S.P[a.k]){ log(`${S.P[a.k].n} طلع`); const wasLd=S.ld===a.k; delete S.P[a.k]; S.order=S.order.filter(x=>x!==a.k);
+        if(wasLd&&S.ph!=='lobby'&&S.ph!=='over'){ S.ph='show'; S.res={txt:'الكبير طلع — جولة جديدة',show:[]}; }
+        else if(S.ph==='bet'&&S.turn===a.k) nextTurn(); else if(S.ph==='resp') checkResp(); }
+      break;
+    case 'reset': if(host){ const keep=S.P; S=fresh(); for(const kk in keep) S.P[kk]={n:keep[kk].n,b:START_BAL,s:'w',c:[]}; log('لعبة جديدة — الكل رجع ١٠٠,٠٠٠'); } break;
   }
 }
 function addPlayer(k,name){
-  if(S.P[k]){ if(name && S.P[k].n!==name) S.P[k].n=name; return; }
+  if(S.P[k]){ if(name&&S.P[k].n!==name) S.P[k].n=name; return; }
   if(Object.keys(S.P).length>=13) return;
-  S.P[k]={n:name, b:START_BAL, s:'w', c:[]};
-  log(`${name} دخل 👋`);
+  S.P[k]={n:name,b:START_BAL,s:'w',c:[]}; log(`${name} دخل 👋`);
 }
-function commit(){
-  S.v++;
-  let st=JSON.parse(JSON.stringify(S));
-  while(JSON.stringify({role:'host',n:myName,st}).length>3500 && st.log.length){ st.log.pop(); }
-  try{ localStorage.setItem('daqsh_state_'+CODE, JSON.stringify(S)); }catch(e){}
-  sendState(st);
-  render();
-}
-
-// ---------- actions ----------
-function act(t, extra){
-  const a=Object.assign({i:Date.now(), t}, extra||{});
+function commit(){ S.v++; const st=JSON.parse(JSON.stringify(S));
+  try{ localStorage.setItem('daqsh_state_'+CODE,JSON.stringify(S)); }catch(e){}
+  sendState(st); render(); }
+function act(t,extra){ const a=Object.assign({i:Date.now(),t},extra||{});
   if(isHost){ apply(myKey,a); commit(); }
-  else if(chan){ chan.send({type:'broadcast',event:'act',payload:{k:myKey,n:myName,a}}); }
-}
+  else if(chan){ chan.send({type:'broadcast',event:'act',payload:{k:myKey,n:myName,a}}); } }
 
 // ---------- realtime ----------
 let lastState=null, hostTimer=null, joinTimer=null;
 function sendState(st){ lastState=st||lastState; if(chan&&lastState) chan.send({type:'broadcast',event:'state',payload:{st:lastState}}); }
-function onAct(m){
-  if(!isHost) return; const k=clip(m.k,20), n=clip(m.n,16), a=m.a; if(!k) return;
+function onAct(m){ if(!isHost) return; const k=clip(m.k,20), n=clip(m.n,16), a=m.a; if(!k) return;
   let changed=false;
   if(n){ const before=JSON.stringify(S.P[k]||null); addPlayer(k,n); if(JSON.stringify(S.P[k]||null)!==before) changed=true; }
   if(a&&typeof a.i==='number'&&a.i>(seen[k]||0)){ seen[k]=a.i; if(S.P[k]){ apply(k,a); changed=true; } }
-  if(changed) commit(); else sendState();
-}
+  if(changed) commit(); else sendState(); }
 function setConn(c,t){ $('#dot').classList.toggle('on',c); $('#conn').textContent=t; }
 function connect(){
   if(!window.supabase){ ready=true; render(); return; }
@@ -234,167 +240,149 @@ function connect(){
   chan.on('broadcast',{event:'state'},({payload})=>{ if(isHost||!payload||!payload.st) return; S=payload.st; hostSeen=true; render(); });
   chan.on('broadcast',{event:'hello'},()=>{ if(isHost) sendState(); });
   chan.subscribe(st=>{
-    if(st==='SUBSCRIBED'){ setConn(true,'متصل · غرفة '+CODE); room=chan; ready=true;
-      if(isHost){ sendState(); } else { hello(); }
-      render(); }
-    else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){ setConn(false,'انقطع… يعيد المحاولة'); }
-    else if(st==='CLOSED'){ setConn(false,'غير متصل'); }
+    if(st==='SUBSCRIBED'){ setConn(true,'متصل · غرفة '+CODE); ready=true; if(isHost) sendState(); else hello(); render(); }
+    else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT') setConn(false,'انقطع… يعيد المحاولة');
+    else if(st==='CLOSED') setConn(false,'غير متصل');
   });
   if(isHost){ clearInterval(hostTimer); hostTimer=setInterval(()=>sendState(),4000); }
   else { clearInterval(joinTimer); joinTimer=setInterval(()=>{ if(!S||!S.P[myKey]) hello(); },3000); }
 }
 function hello(){ if(!chan) return; chan.send({type:'broadcast',event:'hello',payload:{}}); if(myName) chan.send({type:'broadcast',event:'act',payload:{k:myKey,n:myName,a:null}}); }
-
-function newRoom(){
-  const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; CODE=''; const r=new Uint32Array(5); crypto.getRandomValues(r); for(const x of r) CODE+=A[x%A.length];
-  try{ localStorage.setItem('daqsh_host_'+CODE,'1'); }catch(e){}
-  history.replaceState(null,'','?r='+CODE); boot();
-}
+function newRoom(){ const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; CODE=''; const r=new Uint32Array(5); crypto.getRandomValues(r); for(const x of r) CODE+=A[x%A.length];
+  try{ localStorage.setItem('daqsh_host_'+CODE,'1'); }catch(e){} history.replaceState(null,'','?r='+CODE); boot(); }
 function boot(){
-  try{ isHost = localStorage.getItem('daqsh_host_'+CODE)==='1'; }catch(e){}
-  if(isHost){ try{ const saved=JSON.parse(localStorage.getItem('daqsh_state_'+CODE)||'null'); S = saved&&saved.P ? saved : fresh(); }catch(e){ S=fresh(); }
-    if(myName) addPlayer(myKey,myName); }
-  connect(); render();
-}
-function init(){
-  if(!CODE){ ready=true; render(); return; }
-  boot();
-}
-
-function join(){
-  const n=clip($('#nameIn').value,16); if(!n) return;
-  myName=n; try{ localStorage.setItem('daqsh_name',n); }catch(e){}
-  if(isHost){ if(!S) S=fresh(); addPlayer(myKey,n); commit(); }
-  else hello();
-  render();
-}
+  try{ isHost=localStorage.getItem('daqsh_host_'+CODE)==='1'; }catch(e){}
+  if(isHost){ try{ const sv=JSON.parse(localStorage.getItem('daqsh_state_'+CODE)||'null'); S=sv&&sv.P&&sv.order?sv:fresh(); }catch(e){ S=fresh(); } if(myName) addPlayer(myKey,myName); }
+  connect(); render(); }
+function init(){ if(!CODE){ ready=true; render(); return; } boot(); }
+function join(){ const n=clip($('#nameIn').value,16); if(!n) return; myName=n; try{ localStorage.setItem('daqsh_name',n); }catch(e){}
+  if(isHost){ if(!S) S=fresh(); addPlayer(myKey,n); commit(); } else hello(); render(); }
 
 // ---------- render ----------
-let lastFocus=null;
 function render(){
-  const app=$('#app');
-  // preserve inputs
-  const keep={}; app.querySelectorAll('input,select').forEach(el=>{ if(el.id) keep[el.id]=el.value; });
-  const focusId = document.activeElement && document.activeElement.id;
-  let h='';
-  if(!room && !window.__tried){ window.__tried=1; }
-  if(!CODE){
+  const app=$('#app'); const keep={}; app.querySelectorAll('input').forEach(el=>{ if(el.id) keep[el.id]=el.value; });
+  const focusId=document.activeElement&&document.activeElement.id;
+  const qrBox=$('#qrBtn').parentElement;
+  if(!CODE){ qrBox.classList.add('hide');
     app.innerHTML=`<div class="box center"><div style="font-size:18px;font-weight:800;margin-bottom:6px">هلا بالشباب 🃏</div>
       <div class="small" style="margin-bottom:12px">أنشئ غرفة وخل الشباب يصورون الباركود</div>
       <button class="big" id="newBtn">أنشئ غرفة جديدة</button>
       <div class="row" style="margin-top:12px"><input id="codeIn" class="grow" placeholder="أو اكتب رمز الغرفة" style="text-transform:uppercase"><button class="ghost" id="codeBtn">ادخل</button></div></div>`;
-    $('#newBtn').onclick=newRoom;
-    $('#codeBtn').onclick=()=>{ const c=$('#codeIn').value.toUpperCase().replace(/[^A-Z0-9]/g,''); if(c){ location.search='?r='+c; } };
-    document.querySelector('#qrBtn').parentElement.classList.add('hide');
-    return;
-  }
-  document.querySelector('#qrBtn').parentElement.classList.remove('hide');
-  if(!myName){
-    h+=`<div class="box"><div style="font-weight:600;margin-bottom:8px">وش اسمك؟</div>
+    $('#newBtn').onclick=newRoom; $('#codeBtn').onclick=()=>{ const c=$('#codeIn').value.toUpperCase().replace(/[^A-Z0-9]/g,''); if(c) location.search='?r='+c; }; return; }
+  qrBox.classList.remove('hide');
+  let h='';
+  if(!myName){ h=`<div class="box"><div style="font-weight:600;margin-bottom:8px">وش اسمك؟</div>
       <div class="row"><input id="nameIn" class="grow" maxlength="16" placeholder="اسمك في اللعبة"><button id="joinBtn">ادخل</button></div>
       ${isHost?'<div class="small" style="margin-top:8px">أنت المضيف 👑 — خل هالصفحة مفتوحة طول اللعب.</div>':''}</div>`;
-    app.innerHTML=h; bind(keep,focusId); return;
-  }
+    app.innerHTML=h; bind(keep,focusId); return; }
   if(!ready){ app.innerHTML=`<div class="box center small">جاري الاتصال…</div>`; return; }
   if(!window.supabase){ app.innerHTML=`<div class="box">ما قدرت أحمّل الاتصال. تأكد من الإنترنت وحدّث الصفحة.</div>`; return; }
   if(!S){ app.innerHTML=`<div class="box center">مرحبا ${esc(myName)} 👋<br><span class="small">بانتظار المضيف (غرفة ${esc(CODE)})… تأكد إن صفحة المضيف مفتوحة</span></div>`; return; }
   const me=S.P[myKey];
-  if(!me){ app.innerHTML=`<div class="box center">جاري تسجيلك يا ${esc(myName)}…<br><span class="small">${hostSeen?'':'المضيف مو متصل حالياً'}</span></div>`; return; }
+  if(!me){ app.innerHTML=`<div class="box center">جاري تسجيلك يا ${esc(myName)}…</div>`; return; }
+  const ph=S.ph, isLd=S.ld===myKey, myTurn=ph==='bet'&&S.turn===myKey;
+  const phTxt={lobby:'بانتظار البداية',bet:`المزايدة — دور ${esc(nm(S.turn))}`,split:`${esc(nm(S.ld))} يوزّع رهانه`,resp:'كل واحد يقرر: يقبل، يداقش، أو ينسحب',show:`الجولة ${S.rd} انتهت`,over:'انتهت اللعبة'}[ph]||'';
 
-  const ph=S.ph, isLd=S.ld===myKey;
   h+=`<div class="box"><div class="stats">
-    <div class="stat"><b>${fmt(S.pot)}</b><span>الصندوق</span></div>
+    <div class="stat"><b>${fmt(me.b)}</b><span>رصيدك</span></div>
     <div class="stat"><b>${fmt(S.bid)}</b><span>أعلى رهان${S.ld?' — '+esc(nm(S.ld)):''}</span></div>
-    <div class="stat"><b>${fmt(me.b)}</b><span>رصيدك</span></div></div>
-    <div class="small center" style="margin-top:6px">${ph==='lobby'?'بانتظار البداية':ph==='bet'?'الجولة '+S.rd+' — المزايدة شغالة':'الجولة '+S.rd+' انتهت'} · الدخولية ${fmt(S.ante)}${S.lowest&&ph!=='lobby'?' · الورق إكه ← '+(RNAME[S.lowest]||S.lowest):''}</div></div>`;
+    <div class="stat"><b>${fmt(GOAL)}</b><span>الهدف</span></div></div>
+    <div class="small center" style="margin-top:6px">${phTxt}${S.lowest&&ph!=='lobby'?' · الورق إكه ← '+rname(S.lowest):''}</div></div>`;
 
-  if(S.res && ph==='show') h+=`<div class="banner">${esc(S.res.txt)}</div>`;
+  if(ph==='over'&&S.champ) h+=`<div class="banner">🏆 ${esc(nm(S.champ))} وصل المليون وفاز!</div>`;
+  else if(S.res&&ph==='show') h+=`<div class="banner">${esc(S.res.txt)}</div>`;
 
-  // my cards
-  if(me.c && me.c.length && ph!=='lobby'){
-    h+=`<div class="box"><div class="small center">أوراقك ${me.s==='f'?'(منسحب)':''}</div><div class="cards">${me.c.map(c=>cardHTML(c)).join('')}</div></div>`;
-  } else if(me.s==='w'){ h+=`<div class="box center small">بتدخل من الجولة الجاية</div>`; }
-  else if(me.s==='x'){ h+=`<div class="box center small">رصيدك ما يكفي للدخولية 💸</div>`; }
+  if(me.c&&me.c.length&&ph!=='lobby') h+=`<div class="box"><div class="small center">أوراقك ${me.s==='f'?'(منسحب)':''}${me.bet?' · رهانك '+fmt(me.bet):''}</div><div class="cards">${me.c.map(c=>cardHTML(c)).join('')}</div></div>`;
+  else if(me.s==='w'&&ph!=='lobby') h+=`<div class="box center small">بتدخل من الجولة الجاية</div>`;
+  else if(me.s==='x') h+=`<div class="box center small">رصيدك خلص 💸</div>`;
 
-  // offer to me
-  if(S.off && S.off.to===myKey && ph==='bet'){
-    h+=`<div class="offer"><div style="font-weight:800;font-size:18px">${esc(nm(S.ld))} يعرض عليك ${fmt(S.off.amt)} عشان تنسحب</div>
-      <div class="row" style="justify-content:center;margin-top:10px"><button id="accBtn">أقبل وأنسحب 💰</button><button class="ghost" id="rejBtn">أرفض</button></div></div>`;
-  } else if(S.off && ph==='bet'){
-    h+=`<div class="box small center">عرض معلّق: ${esc(nm(S.ld))} ← ${esc(nm(S.off.to))} بمبلغ ${fmt(S.off.amt)} ${isLd?'<button class="ghost" id="cancelBtn" style="padding:4px 10px;font-size:12px">إلغاء</button>':''}</div>`;
-  }
-
-  // betting controls
-  if(ph==='bet' && me.s==='in'){
-    const minB=Math.max(500,S.bid+1);
-    const potOk=S.pot>S.bid && S.pot<=me.b;
-    h+=`<div class="box"><div style="font-weight:600;margin-bottom:8px">${isLd?'أنت الكبير 👑':'راهن'}</div>
+  // betting turn
+  if(myTurn){
+    h+=`<div class="box"><div style="font-weight:800;margin-bottom:8px;color:var(--gold)">دورك 🎯</div>
       <div class="row chips" style="margin-bottom:8px">
-        <button class="ghost" data-q="${S.bid+1000}">${fmt(S.bid+1000)}</button>
-        <button class="ghost" data-q="${S.bid+5000}">${fmt(S.bid+5000)}</button>
-        <button class="ghost" data-q="${S.bid+10000}">${fmt(S.bid+10000)}</button>
-        <button class="ghost" data-q="${S.pot}" ${potOk?'':'disabled'}>الصندوق كامل</button>
+        ${[1000,5000,10000,25000].map(x=>S.bid+x<=me.b?`<button class="ghost" data-q="${S.bid+x}">${fmt(S.bid+x)}</button>`:'').join('')}
       </div>
-      <div class="row"><input id="bidIn" type="number" inputmode="numeric" class="grow" min="${minB}" step="500" placeholder="المبلغ (أعلى من ${fmt(S.bid)})"><button id="bidBtn">راهن</button></div>
-      ${!isLd?'<button class="red big" id="foldBtn" style="margin-top:10px">انسحب</button>':''}
-    </div>`;
-    if(isLd){
-      const others=inKeys().filter(k=>k!==myKey);
-      h+=`<div class="box"><div style="font-weight:600;margin-bottom:8px">اشترِ انسحاب لاعب</div>
-        <div class="row"><select id="offTo" class="grow">${others.map(k=>`<option value="${esc(k)}">${esc(nm(k))}</option>`).join('')}</select>
-        <input id="offAmt" type="number" inputmode="numeric" style="width:120px" placeholder="المبلغ"><button id="offBtn" ${others.length&&!S.off?'':'disabled'}>اعرض</button></div>
-        <button class="big" id="daqshBtn" style="margin-top:12px">🔥 داقش ${others.length?'('+others.length+')':''}</button></div>`;
+      <div class="row"><input id="bidIn" type="number" inputmode="numeric" class="grow" placeholder="أعلى من ${fmt(S.bid)}"><button id="bidBtn">راهن</button></div>
+      <div class="row" style="margin-top:10px"><button class="grow" id="allBtn">ادخل بالصندوق كامل (${fmt(me.b)})</button><button class="red" id="passBtn">انسحب</button></div></div>`;
+  }
+  // leader split
+  if(ph==='split'&&isLd){
+    const os=others();
+    h+=`<div class="box"><div style="font-weight:800;margin-bottom:4px;color:var(--gold)">أنت الكبير 👑 — وزّع من رهانك (${fmt(S.bid)})</div>
+      <div class="small" style="margin-bottom:8px">حط مبلغ للي تبيه ما ينافسك. اتركه فاضي للي ما تبي تعطيه.</div>
+      ${os.map(o=>`<div class="row" style="margin-bottom:6px"><div class="grow">${esc(nm(o))} <span class="small">(راهن ${fmt(S.P[o].bet)})</span></div><input type="number" inputmode="numeric" id="off_${esc(o)}" data-off="${esc(o)}" style="width:120px" placeholder="0"></div>`).join('')}
+      <div class="small" id="offTot" style="margin:6px 0"></div>
+      <button class="big" id="splitBtn">أرسل التوزيع</button></div>`;
+  } else if(ph==='split') h+=`<div class="box center small">${esc(nm(S.ld))} يوزّع رهانه… انتظر</div>`;
+  // responses
+  if(ph==='resp'){
+    if(!isLd&&me.s==='in'&&!me.r){
+      h+=`<div class="offer"><div style="font-weight:800;font-size:18px">${me.off?`${esc(nm(S.ld))} وزّع لك ${fmt(me.off)}`:`${esc(nm(S.ld))} ما وزّع لك شي`}</div>
+        <div class="small" style="color:#dbe7ff;margin-top:4px">${me.off?'إذا قبلت ما تنافسه وتاخذ المبلغ إذا فاز. ':''}داقش: إذا غلبته تاخذ ${fmt(me.bet)}، وإذا غلبك تخسر ${fmt(me.bet)}.</div>
+        <div class="row" style="justify-content:center;margin-top:10px">${me.off?'<button id="accBtn">أقبل 🤝</button>':''}<button class="red" id="dqBtn">داقش 🔥</button><button class="ghost" id="foldBtn">انسحب</button></div></div>`;
+    } else {
+      const wait=others().filter(k=>!S.P[k].r).map(nm);
+      h+=`<div class="box center small">${wait.length?'بانتظار: '+wait.map(esc).join('، '):''}</div>`;
     }
   }
 
   // players
   h+=`<div class="box"><div style="font-weight:600;margin-bottom:4px">اللاعبين (${Object.keys(S.P).length})</div>`;
-  for(const k of Object.keys(S.P)){
-    const p=S.P[k]; const showC = ph==='show' && S.res && S.res.show.includes(k);
-    const tag = k===S.ld&&ph==='bet' ? '<span class="tag l">الكبير</span>' : p.s==='f'?'<span class="tag f">منسحب</span>':(p.s==='w'&&ph==='bet')?'<span class="tag">ينتظر</span>':p.s==='x'?'<span class="tag f">مفلس</span>':(S.res&&S.res.w.includes(k)&&ph==='show')?'<span class="tag l">فاز 🏆</span>':'';
+  const keys=S.order.concat(Object.keys(S.P).filter(k=>!S.order.includes(k)));
+  for(const k of keys){ const p=S.P[k]; if(!p) continue;
+    const showC=(ph==='show'||ph==='over')&&S.res&&S.res.show&&S.res.show.includes(k);
+    let tag='';
+    if(ph==='bet'&&S.turn===k) tag='<span class="tag l">دوره</span>';
+    else if(k===S.ld&&['bet','split','resp'].includes(ph)) tag='<span class="tag l">الكبير</span>';
+    else if((ph==='show'||ph==='over')&&S.res&&S.res.w&&S.res.w.includes(k)&&S.res.show&&S.res.show.length) tag='<span class="tag l">فاز 🏆</span>';
+    else if(p.s==='f') tag='<span class="tag f">منسحب</span>';
+    else if(p.r==='acc'&&ph==='resp') tag=`<span class="tag">قبل ${fmt(p.off)}</span>`;
+    else if(p.r==='dq'&&ph==='resp') tag='<span class="tag f">داقش</span>';
+    else if(p.s==='x') tag='<span class="tag f">مفلس</span>';
+    else if(p.bet&&ph!=='lobby') tag=`<span class="tag">${fmt(p.bet)}</span>`;
     h+=`<div class="pl"><div class="nm ${k===myKey?'me':''}">${esc(p.n)}${k===myKey?' (أنت)':''}</div>${tag}
       ${showC?`<div class="cards" style="margin:0;gap:3px">${p.c.map(c=>cardHTML(c,true)).join('')}</div>`:''}
       <div class="bal">${fmt(p.b)}</div>
-      ${isHost&&k!==myKey?`<button class="ghost" data-kick="${esc(k)}" style="padding:4px 8px;font-size:12px">✕</button>`:''}</div>`;
-  }
+      ${isHost&&k!==myKey?`<button class="ghost" data-kick="${esc(k)}" style="padding:4px 8px;font-size:12px">✕</button>`:''}</div>`; }
   h+=`</div>`;
 
-  // host controls
   if(isHost){
     h+=`<div class="box"><div style="font-weight:600;margin-bottom:8px">تحكم المضيف 👑</div>
-      ${ph!=='bet'?`<button class="big" id="startBtn">${ph==='lobby'?'ابدأ اللعب':'جولة جديدة'} 🃏</button>
-      <div class="row" style="margin-top:10px"><span class="small">الدخولية:</span><input id="anteIn" type="number" style="width:110px" value="${S.ante}"><button class="ghost" id="anteBtn">حفظ</button>
-      <button class="ghost" id="resetBtn">صفّر الأرصدة</button></div>`:'<div class="small">الجولة شغالة… الكبير يقرر متى يداقش.</div>'}
-    </div>`;
+      ${ph==='lobby'||ph==='show'?`<button class="big" id="startBtn">${ph==='lobby'?'ابدأ اللعب':'وزّع الجولة الجاية'} 🃏</button>`:ph==='over'?'':'<div class="small">الجولة شغالة…</div>'}
+      <button class="ghost" id="resetBtn" style="margin-top:10px">لعبة جديدة (يرجع الكل ١٠٠,٠٠٠)</button></div>`;
   }
-
   if(S.log.length) h+=`<div class="box log">${S.log.map(esc).join('<br>')}</div>`;
   app.innerHTML=h; bind(keep,focusId);
 }
 
 function bind(keep,focusId){
-  for(const id in keep){ const el=document.getElementById(id); if(el && el.type!=='hidden' && id!=='anteIn') el.value=keep[id]; else if(el&&id==='anteIn'&&document.activeElement===el) el.value=keep[id]; }
-  if(focusId){ const el=document.getElementById(focusId); if(el && el.tagName==='INPUT') el.focus(); }
+  for(const id in keep){ const el=document.getElementById(id); if(el) el.value=keep[id]; }
+  if(focusId){ const el=document.getElementById(focusId); if(el&&el.tagName==='INPUT') el.focus(); }
   const on=(id,fn)=>{ const el=document.getElementById(id); if(el) el.onclick=fn; };
   on('joinBtn',join);
   const ni=$('#nameIn'); if(ni){ if(!ni.value) ni.value=myName; ni.onkeydown=e=>{ if(e.key==='Enter') join(); }; }
-  on('bidBtn',()=>{ const v=Number($('#bidIn').value); const me=S.P[myKey];
-    if(!(v>S.bid)) return flash('لازم أعلى من '+fmt(S.bid)); if(v<500) return flash('أقل رهان 500'); if(v>me.b) return flash('رصيدك ما يكفي');
-    act('bid',{amt:v}); $('#bidIn').value=''; });
+  const me=S&&S.P[myKey];
+  on('bidBtn',()=>{ const v=Math.floor(Number($('#bidIn').value));
+    if(!(v>S.bid)) return flash('لازم أعلى من '+fmt(S.bid)); if(v>me.b) return flash('رصيدك ما يكفي');
+    $('#bidIn').value=''; act('bid',{amt:v}); });
   document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{ $('#bidIn').value=b.dataset.q; });
+  on('allBtn',()=>act('allin'));
+  on('passBtn',()=>act('pass'));
+  const offIns=[...document.querySelectorAll('[data-off]')];
+  const upd=()=>{ const t=offIns.reduce((a,el)=>a+(Math.floor(Number(el.value))||0),0); const el=$('#offTot'); if(el){ el.textContent=`المجموع ${fmt(t)} من ${fmt(S.bid)} — يبقى لك ${fmt(S.bid-t)} إذا فزت`; el.style.color=t>S.bid?'#ff8a8a':''; } return t; };
+  offIns.forEach(el=>el.oninput=upd); if(offIns.length) upd();
+  on('splitBtn',()=>{ const t=upd(); if(t>S.bid) return flash('المجموع أكبر من رهانك'); const offs={}; offIns.forEach(el=>offs[el.dataset.off]=Math.floor(Number(el.value))||0); act('split',{offs}); });
+  on('accBtn',()=>act('acc'));
+  on('dqBtn',()=>act('dq'));
   on('foldBtn',()=>act('fold'));
-  on('accBtn',()=>act('accept'));
-  on('rejBtn',()=>act('reject'));
-  on('cancelBtn',()=>act('cancel'));
-  on('offBtn',()=>{ const to=$('#offTo').value, amt=Number($('#offAmt').value); if(!to||!(amt>0)) return flash('حدد المبلغ'); if(amt>S.P[myKey].b) return flash('رصيدك ما يكفي'); act('offer',{to,amt}); });
-  on('daqshBtn',()=>act('daqsh'));
   on('startBtn',()=>act('start'));
-  on('anteBtn',()=>act('ante',{v:Number($('#anteIn').value)}));
-  on('resetBtn',()=>{ const b=$('#resetBtn'); if(b.dataset.sure){ act('reset'); } else { b.dataset.sure=1; b.textContent='متأكد؟'; } });
+  on('resetBtn',()=>{ const b=$('#resetBtn'); if(b.dataset.sure) act('reset'); else { b.dataset.sure=1; b.textContent='متأكد؟ اضغط مرة ثانية'; } });
   document.querySelectorAll('[data-kick]').forEach(b=>b.onclick=()=>{ if(b.dataset.sure) act('kick',{k:b.dataset.kick}); else { b.dataset.sure=1; b.textContent='طرد؟'; } });
 }
 function flash(t){ let f=$('#flash'); if(!f){ f=document.createElement('div'); f.id='flash'; f.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#e05252;color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;z-index:9'; document.body.appendChild(f);} f.textContent=t; f.style.display='block'; clearTimeout(f._t); f._t=setTimeout(()=>f.style.display='none',2200); }
 
+// test hook
+if(window.__DAQSH_TEST__) window.__DAQSH_TEST__({get S(){return S}, set S(v){S=v}, fresh, apply, addPlayer, setMe:(k)=>{myKey=k}, render:()=>{}});
 init();
 })();
 </script>
